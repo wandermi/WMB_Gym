@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <rect width="192" height="192" rx="42" fill="#0D0D0D"/>
+  <rect width="192" height="192" rx="42" fill="#FF3D00" opacity=".15"/>
+  <text x="96" y="78" text-anchor="middle" font-family="Arial Black,Arial" font-weight="900" font-size="58" fill="#FF3D00">WMB</text>
+  <text x="96" y="128" text-anchor="middle" font-family="Arial Black,Arial" font-weight="900" font-size="38" fill="#F0F0F0">GYM</text>
+  <rect x="36" y="142" width="120" height="4" rx="2" fill="#FF3D00" opacity=".6"/>
+</svg>
