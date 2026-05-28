@@ -1,4 +1,4 @@
-const CACHE = 'wmb-v1';
+const CACHE_NAME = 'wmb-gym-v2'; // ou v3, v4... incrementa
 const ASSETS = ['/', '/index.html', '/manifest.json', '/sw.js', '/icon.svg'];
 
 self.addEventListener('install', e => {
