@@ -16,7 +16,7 @@
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{background:#0D0D0D;font-family:'DM Sans',sans-serif;color:#F0F0F0;overscroll-behavior:none}
 #app{max-width:440px;margin:0 auto;min-height:100vh}
-:root{--a:#FF3D00;--done:#00E676;--card:#1E1E1E;--b:#2A2A2A;--m:#666}
+:root{--a:#00FF00;--done:#00FF00;--card:#1A1A1A;--b:#2A2A2A;--m:#666}
 
 /* ── HOME ── */
 .hd{padding:max(env(safe-area-inset-top),36px) 22px 16px;border-bottom:1px solid var(--b);display:flex;justify-content:space-between;align-items:flex-start}
@@ -28,7 +28,7 @@ body{background:#0D0D0D;font-family:'DM Sans',sans-serif;color:#F0F0F0;overscrol
 
 /* profile card */
 .profile-card{margin:12px 14px 0;background:var(--card);border:1px solid var(--b);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:12px;cursor:pointer}
-.pc-avatar{width:40px;height:40px;border-radius:50%;background:#FF3D0022;border:2px solid #FF3D0044;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.pc-avatar{width:40px;height:40px;border-radius:50%;background:var(--a);opacity:.15;border:2px solid var(--a);opacity:.3;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
 .pc-name{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:.04em;line-height:1}
 .pc-meta{font-size:11px;color:var(--m);margin-top:2px}
 .pc-badge{margin-left:auto;font-size:10px;font-weight:600;padding:3px 8px;border-radius:20px;flex-shrink:0}
@@ -51,7 +51,7 @@ body{background:#0D0D0D;font-family:'DM Sans',sans-serif;color:#F0F0F0;overscrol
 /* ── WORKOUT ── */
 .wh{padding:16px 16px 12px;position:sticky;top:0;background:#0D0D0D;border-bottom:1px solid var(--b);z-index:10}
 .wh-top{display:flex;align-items:center;gap:9px;margin-bottom:10px}
-.bk{background:var(--card);border:1px solid var(--b);border-radius:8px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#F0F0F0;font-size:16px;flex-shrink:0}
+.bk{background:var(--card);border:1px solid var(--b);border-radius:8px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#F0F0F0;font-size:18px;flex-shrink:0;transition:all .15s;padding:8px}
 .wh-l{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.06em;line-height:1}
 .wh-s{font-size:11px;color:var(--m);margin-top:1px}
 .cb{background:#0043881A;border:1px solid #00438818;border-radius:6px;font-size:10px;color:#4A9EFF;padding:3px 7px;white-space:nowrap;flex-shrink:0;margin-left:auto}
@@ -111,7 +111,7 @@ body{background:#0D0D0D;font-family:'DM Sans',sans-serif;color:#F0F0F0;overscrol
 /* ── SETTINGS MODAL ── */
 .tabs{display:flex;gap:0;border:1px solid var(--b);border-radius:10px;overflow:hidden;margin-bottom:18px}
 .tab{flex:1;background:transparent;border:none;color:var(--m);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;padding:10px;cursor:pointer;transition:all .15s}
-.tab.active{background:#FF3D0022;color:#FF3D00;font-weight:600}
+.tab.active{background:var(--a);background-color:rgba(0,255,0,.1);color:var(--a);font-weight:600}
 .form-field{margin-bottom:14px}
 .form-label{font-size:10px;color:var(--m);text-transform:uppercase;letter-spacing:.09em;margin-bottom:5px;display:block}
 .form-input{width:100%;background:var(--b);border:1px solid #333;border-radius:8px;color:#F0F0F0;font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 12px;-webkit-appearance:none;appearance:none}
@@ -119,7 +119,7 @@ body{background:#0D0D0D;font-family:'DM Sans',sans-serif;color:#F0F0F0;overscrol
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .radio-group{display:flex;gap:7px;flex-wrap:wrap}
 .radio-btn{background:transparent;border:1px solid var(--b);border-radius:8px;color:var(--m);font-size:12px;font-weight:500;padding:8px 12px;cursor:pointer;transition:all .15s;flex:1;text-align:center}
-.radio-btn.sel{border-color:var(--a);background:#FF3D0018;color:#FF3D00}
+.radio-btn.sel{border-color:var(--a);background:rgba(0,255,0,.1);color:var(--a)}
 .save-btn{width:100%;background:var(--a);border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:600;padding:13px;cursor:pointer;margin-top:4px}
 .sch-config-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #222}
 .sch-config-day{font-size:12px;color:var(--m);width:30px;flex-shrink:0}

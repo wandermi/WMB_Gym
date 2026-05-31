@@ -1,7 +1,33 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <!-- Fundo preto com borda verde neon -->
   <rect width="192" height="192" rx="42" fill="#0D0D0D"/>
-  <rect width="192" height="192" rx="42" fill="#FF3D00" opacity=".15"/>
-  <text x="96" y="78" text-anchor="middle" font-family="Arial Black,Arial" font-weight="900" font-size="58" fill="#FF3D00">WMB</text>
-  <text x="96" y="128" text-anchor="middle" font-family="Arial Black,Arial" font-weight="900" font-size="38" fill="#F0F0F0">GYM</text>
-  <rect x="36" y="142" width="120" height="4" rx="2" fill="#FF3D00" opacity=".6"/>
+  <rect width="192" height="192" rx="42" fill="none" stroke="#00FF00" stroke-width="3"/>
+  
+  <!-- Efeito glow verde neon -->
+  <defs>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Ícone de halter/barra (simbólico) -->
+  <g filter="url(#glow)">
+    <!-- Barra horizontal principal -->
+    <rect x="36" y="84" width="120" height="8" rx="4" fill="#00FF00"/>
+    
+    <!-- Peso esquerdo -->
+    <circle cx="36" cy="88" r="16" fill="none" stroke="#00FF00" stroke-width="3"/>
+    <circle cx="36" cy="88" r="10" fill="none" stroke="#00FF00" stroke-width="2"/>
+    
+    <!-- Peso direito -->
+    <circle cx="156" cy="88" r="16" fill="none" stroke="#00FF00" stroke-width="3"/>
+    <circle cx="156" cy="88" r="10" fill="none" stroke="#00FF00" stroke-width="2"/>
+  </g>
+  
+  <!-- Texto WMB em verde neon -->
+  <text x="96" y="148" text-anchor="middle" font-family="Arial Black, Arial" font-weight="900" font-size="22" fill="#00FF00" filter="url(#glow)" letter-spacing="2">WMB</text>
 </svg>
