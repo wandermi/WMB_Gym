@@ -11,554 +11,104 @@
 <link rel="apple-touch-icon" href="icon.svg">
 <title>WMB GYM</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-body{background:#0D0D0D;font-family:'DM Sans',sans-serif;color:#F0F0F0;overscroll-behavior:none}
-#app{max-width:440px;margin:0 auto;min-height:100vh}
-:root{--a:#00FF00;--done:#00FF00;--card:#1A1A1A;--b:#2A2A2A;--m:#666}
+body{background:#0A0A0A;font-family:'Inter',sans-serif;color:#F0F0F0;overscroll-behavior:none;-webkit-font-smoothing:antialiased}
+#app{max-width:480px;margin:0 auto;min-height:100vh}
+:root{--a:#00FF00;--a-dim:rgba(0,255,0,.15);--card:#161616;--card-light:#1E1E1E;--b:#252525;--m:#888;--m-light:#AAA;--bg:#0A0A0A;--text:#F0F0F0;--text-soft:#CCC}
+
+/* ── LOADING ── */
+.loading-screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;background:var(--bg)}
+.spinner{width:48px;height:48px;border:3px solid var(--b);border-top-color:var(--a);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{color:var(--m);font-size:13px;letter-spacing:.05em}
+
+/* ── TOAST ── */
+.toast{position:fixed;top:max(20px,env(safe-area-inset-top));left:50%;transform:translateX(-50%) translateY(-100px);background:var(--card);border:1px solid;border-radius:10px;padding:12px 18px;font-size:13px;font-weight:500;z-index:9999;transition:transform .3s;max-width:90%}
+.toast.show{transform:translateX(-50%) translateY(0)}
+
+/* ── AUTH ── */
+.auth-container{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;gap:32px}
+.auth-logo{text-align:center}
+.logo-text{font-family:'Bebas Neue',sans-serif;font-size:64px;line-height:1;color:var(--a);text-shadow:0 0 32px rgba(0,255,0,.3)}
+.logo-sub{font-size:12px;color:var(--m);margin-top:8px;letter-spacing:.1em;text-transform:uppercase}
+.auth-card{width:100%;max-width:340px;background:var(--card);border:1px solid var(--b);border-radius:16px;padding:24px}
+.auth-tabs{display:flex;gap:0;background:var(--bg);border-radius:10px;padding:4px;margin-bottom:20px}
+.auth-tab{flex:1;background:transparent;border:none;color:var(--m);font-family:'Inter',sans-serif;font-size:13px;font-weight:600;padding:10px;cursor:pointer;border-radius:8px;transition:all .2s}
+.auth-tab.active{background:var(--a-dim);color:var(--a)}
+.auth-form{display:flex;flex-direction:column;gap:10px}
+.auth-input{width:100%;background:var(--bg);border:1px solid var(--b);border-radius:10px;color:var(--text);font-family:'Inter',sans-serif;font-size:14px;padding:13px 15px;-webkit-appearance:none;appearance:none;transition:border .2s}
+.auth-input:focus{outline:none;border-color:var(--a)}
+.auth-input::placeholder{color:var(--m)}
+.auth-btn{width:100%;background:var(--a);border:none;border-radius:10px;color:#000;font-family:'Inter',sans-serif;font-size:14px;font-weight:700;padding:14px;cursor:pointer;margin-top:8px;transition:all .15s;letter-spacing:.02em}
+.auth-btn:active{transform:scale(.98)}
+.auth-btn:disabled{opacity:.5;cursor:not-allowed}
+.auth-link{display:block;text-align:center;color:var(--m);font-size:12px;text-decoration:none;margin-top:14px;font-weight:500}
+.auth-link:hover{color:var(--a)}
 
 /* ── HOME ── */
-.hd{padding:max(env(safe-area-inset-top),36px) 22px 16px;border-bottom:1px solid var(--b);display:flex;justify-content:space-between;align-items:flex-start}
-.hd h1{font-family:'Bebas Neue',sans-serif;font-size:50px;line-height:1}
-.hd-sub{font-size:11px;color:var(--m);letter-spacing:.08em;text-transform:uppercase;margin-top:4px}
-.hd-r{display:flex;gap:7px;flex-shrink:0;margin-top:4px}
-.icon-btn{background:var(--card);border:1px solid var(--b);border-radius:8px;color:var(--m);font-size:12px;padding:7px 11px;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap}
-.icon-btn:active{opacity:.7}
+.home-container{padding:env(safe-area-inset-top,28px) 16px 80px;padding-top:max(env(safe-area-inset-top),28px)}
+.home-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px}
+.home-greeting{font-size:13px;color:var(--m);font-weight:500}
+.home-name{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:.02em;line-height:1.1;margin-top:2px}
+.header-btn{background:var(--card);border:1px solid var(--b);border-radius:10px;color:var(--text);width:40px;height:40px;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center}
 
-/* profile card */
-.profile-card{margin:12px 14px 0;background:var(--card);border:1px solid var(--b);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:12px;cursor:pointer}
-.pc-avatar{width:40px;height:40px;border-radius:50%;background:var(--a);opacity:.15;border:2px solid var(--a);opacity:.3;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
-.pc-name{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:.04em;line-height:1}
-.pc-meta{font-size:11px;color:var(--m);margin-top:2px}
-.pc-badge{margin-left:auto;font-size:10px;font-weight:600;padding:3px 8px;border-radius:20px;flex-shrink:0}
+/* Protocol badge */
+.protocol-badge{display:flex;align-items:center;gap:14px;background:linear-gradient(135deg,var(--a-dim) 0%,rgba(0,255,0,.05) 100%);border:1px solid rgba(0,255,0,.3);border-radius:14px;padding:14px 16px;margin-bottom:24px}
+.pb-icon{font-size:28px}
+.pb-name{font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--a);letter-spacing:.05em;line-height:1}
+.pb-meta{font-size:11px;color:var(--m-light);margin-top:3px;font-weight:500}
 
-/* schedule */
-.sch-wrap{padding:12px 16px 4px}
-.sch-lbl{font-size:9px;color:#444;text-transform:uppercase;letter-spacing:.09em;margin-bottom:7px}
-.sch-row{display:flex;gap:4px}
-.sch-i{display:flex;flex-direction:column;align-items:center;gap:2px;flex:1}
-.sch-dot{width:30px;height:30px;border-radius:50%;border:2px solid var(--b);font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;color:var(--m)}
-.sch-day{font-size:8px;color:#444}
-.day-list{padding:12px 14px 90px;display:flex;flex-direction:column;gap:9px}
-.day-card{background:var(--card);border:1px solid var(--b);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:13px;cursor:pointer}
-.day-card:active{transform:scale(.98)}
-.di{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
-.d-lbl{font-family:'Bebas Neue',sans-serif;font-size:21px;letter-spacing:.06em;line-height:1}
-.d-sub{font-size:12px;color:var(--m);margin-top:2px}
-.d-meta{font-size:11px;color:#444;margin-top:1px}
+/* Sections */
+.section{margin-bottom:24px}
+.section-title{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:.05em;color:var(--text);margin-bottom:12px}
 
-/* ── WORKOUT ── */
-.wh{padding:16px 16px 12px;position:sticky;top:0;background:#0D0D0D;border-bottom:1px solid var(--b);z-index:10}
-.wh-top{display:flex;align-items:center;justify-content:space-between;gap:9px;margin-bottom:10px}
-.bk{background:var(--card);border:1px solid var(--b);border-radius:8px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#F0F0F0;font-size:18px;flex-shrink:0;transition:all .15s;padding:8px}
-.wh-l{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.06em;line-height:1}
-.wh-s{font-size:11px;color:var(--m);margin-top:1px}
-.cb{background:#0043881A;border:1px solid #00438818;border-radius:6px;font-size:10px;color:#4A9EFF;padding:3px 7px;white-space:nowrap;flex-shrink:0;margin-left:auto}
-.pb{height:3px;background:var(--b);border-radius:2px;overflow:hidden}
-.pb-f{height:100%;border-radius:2px;transition:width .4s}
-.pb-l{font-size:11px;color:var(--m);margin-top:5px;display:flex;justify-content:space-between}
-.ex-list{padding:10px 12px 70px;display:flex;flex-direction:column;gap:10px}
-.ex-card{background:var(--card);border:1px solid var(--b);border-radius:12px;overflow:hidden}
-.ex-card.xdone{border-color:#00E67633}
-.ex-head{padding:12px 13px 0;display:flex;justify-content:space-between;align-items:flex-start;gap:7px}
-.ex-nm{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:.03em;line-height:1.1;flex:1}
-.ib{background:transparent;border:1px solid var(--b);border-radius:6px;color:var(--m);font-size:11px;padding:4px 8px;cursor:pointer;flex-shrink:0}
-.ex-rp{font-size:11px;color:var(--m);padding:3px 13px 0}
-.ex-tip{font-size:11px;color:#555;padding:2px 13px 0;font-style:italic}
-.wr{padding:7px 13px 0;display:flex;align-items:center;gap:8px}
-.lw{font-size:11px;color:var(--m)}
-.lw b{color:#aaa;font-weight:600}
-.wi-wrap{display:flex;align-items:center;gap:5px;margin-left:auto}
-.wi{background:var(--b);border:1px solid #333;border-radius:6px;color:#F0F0F0;font-size:13px;font-weight:600;width:70px;padding:5px 7px;text-align:center;-webkit-appearance:none;appearance:none}
-.wi:focus{outline:none;border-color:var(--a)}
-.wu{font-size:11px;color:var(--m)}
-.sets-row{padding:8px 13px 12px;display:flex;gap:7px;flex-wrap:wrap}
-.sb{width:44px;height:44px;border-radius:8px;border:2px solid var(--b);background:transparent;color:var(--m);font-family:'Bebas Neue',sans-serif;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center}
-.sb.done{border-color:var(--done);background:#00E67618;color:var(--done)}
-.sb:active{transform:scale(.92)}
-.fin-btn{display:block;width:100%;margin-top:6px;background:var(--a);border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:600;padding:14px;cursor:pointer}
+/* Workout cards */
+.workout-list{display:flex;flex-direction:column;gap:10px}
+.workout-card{background:var(--card);border:1px solid var(--b);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:all .15s}
+.workout-card:active{transform:scale(.98);border-color:var(--a)}
+.wc-letter{width:48px;height:48px;border-radius:12px;border:2px solid;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:24px;flex-shrink:0}
+.wc-info{flex:1;min-width:0}
+.wc-name{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:.04em;line-height:1.1}
+.wc-sub{font-size:12px;color:var(--m-light);margin-top:3px}
+.wc-meta{display:flex;gap:6px;font-size:11px;color:var(--m);margin-top:6px;flex-wrap:wrap}
+.wc-arrow{color:var(--m);font-size:24px;font-weight:300}
 
-/* ── REST OVERLAY ── */
-.ro{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:440px;background:#161616;border-top:2px solid var(--a);padding:13px 20px;padding-bottom:max(13px,env(safe-area-inset-bottom));display:flex;align-items:center;gap:13px;z-index:50}
-.ro-lbl{font-size:10px;color:var(--m);text-transform:uppercase;letter-spacing:.08em}
-.ro-t{font-family:'Bebas Neue',sans-serif;font-size:34px;color:var(--a);line-height:1}
-.rring{position:relative;width:56px;height:56px;flex-shrink:0}
-.skip{margin-left:auto;background:var(--b);border:none;border-radius:8px;color:var(--m);font-size:12px;font-weight:500;padding:8px 13px;cursor:pointer}
+/* Coming soon */
+.coming-soon{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cs-card{background:var(--card);border:1px dashed var(--b);border-radius:10px;padding:14px 12px;text-align:center;font-size:12px;color:var(--m);font-weight:500}
 
-/* ── MODALS ── */
-.mo{position:fixed;inset:0;background:#000c;z-index:100;display:flex;align-items:flex-end;justify-content:center}
-.ms{background:#1A1A1A;border-radius:20px 20px 0 0;width:100%;max-width:440px;padding:20px 18px;padding-bottom:max(36px,env(safe-area-inset-bottom));max-height:92vh;overflow-y:auto}
-.mh{width:38px;height:4px;background:var(--b);border-radius:2px;margin:0 auto 16px}
-.mt{font-family:'Bebas Neue',sans-serif;font-size:25px;letter-spacing:.03em;line-height:1.1;margin-bottom:10px}
-.mtags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px}
-.mtag{font-size:11px;font-weight:600;padding:4px 9px;border-radius:20px}
-.sec-tag{background:#2A2A2A;color:#666;border:1px solid #333}
-.slbl{font-size:10px;color:var(--m);text-transform:uppercase;letter-spacing:.1em;margin-bottom:7px}
-.stps{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
-.stp{display:flex;gap:10px;align-items:flex-start}
-.stp-n{width:22px;height:22px;border-radius:50%;background:var(--a);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
-.stp-t{font-size:13px;line-height:1.5;color:#ccc}
-.whl{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
-.whr{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:#141414;border-radius:8px}
-.whd{font-size:11px;color:var(--m)}
-.whv{font-family:'Bebas Neue',sans-serif;font-size:18px}
-.whdiff{font-size:11px;margin-left:5px}
-.up{color:var(--done)}.dn{color:#FF6B6B}
-.yt-btn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;background:#CC0000;border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:600;padding:12px;cursor:pointer;margin-bottom:9px;text-decoration:none}
-.cl-btn{display:flex;align-items:center;justify-content:center;width:100%;background:var(--b);border:none;border-radius:10px;color:var(--m);font-size:13px;font-weight:500;padding:12px;cursor:pointer}
+.empty-state{text-align:center;padding:40px 20px;color:var(--m);font-size:14px}
 
-/* ── SETTINGS MODAL ── */
-.tabs{display:flex;gap:0;border:1px solid var(--b);border-radius:10px;overflow:hidden;margin-bottom:18px}
-.tab{flex:1;background:transparent;border:none;color:var(--m);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;padding:10px;cursor:pointer;transition:all .15s}
-.tab.active{background:var(--a);background-color:rgba(0,255,0,.1);color:var(--a);font-weight:600}
-.form-field{margin-bottom:14px}
-.form-label{font-size:10px;color:var(--m);text-transform:uppercase;letter-spacing:.09em;margin-bottom:5px;display:block}
-.form-input{width:100%;background:var(--b);border:1px solid #333;border-radius:8px;color:#F0F0F0;font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 12px;-webkit-appearance:none;appearance:none}
-.form-input:focus{outline:none;border-color:var(--a)}
-.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.radio-group{display:flex;gap:7px;flex-wrap:wrap}
-.radio-btn{background:transparent;border:1px solid var(--b);border-radius:8px;color:var(--m);font-size:12px;font-weight:500;padding:8px 12px;cursor:pointer;transition:all .15s;flex:1;text-align:center}
-.radio-btn.sel{border-color:var(--a);background:rgba(0,255,0,.1);color:var(--a)}
-.save-btn{width:100%;background:var(--a);border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:600;padding:13px;cursor:pointer;margin-top:4px}
-.sch-config-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #222}
-.sch-config-day{font-size:12px;color:var(--m);width:30px;flex-shrink:0}
-.sch-config-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0}
-.sch-select{flex:1;background:#161616;border:1px solid #333;border-radius:8px;color:#F0F0F0;font-family:'DM Sans',sans-serif;font-size:13px;padding:8px 10px;cursor:pointer;-webkit-appearance:none;appearance:none}
-.sch-select:focus{outline:none;border-color:var(--a)}
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:#000c;z-index:1000;display:flex;align-items:flex-end;justify-content:center;animation:fadein .2s}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+.modal-sheet{background:var(--card);border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:20px 18px;padding-bottom:max(36px,env(safe-area-inset-bottom));max-height:80vh;overflow-y:auto;animation:slideup .3s}
+@keyframes slideup{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-handle{width:40px;height:4px;background:var(--b);border-radius:2px;margin:0 auto 16px}
+.modal-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.04em;margin-bottom:16px}
 
-/* ── DONE ── */
-.done-sc{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;text-align:center;gap:13px}
-.done-em{font-size:64px;line-height:1}
-.done-ti{font-family:'Bebas Neue',sans-serif;font-size:48px;line-height:1}
-.done-sub{font-size:13px;color:var(--m);max-width:240px}
-.st-row{display:flex;gap:22px;margin-top:4px}
-.st{text-align:center}
-.st-v{font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--done)}
-.st-l{font-size:10px;color:var(--m);text-transform:uppercase;letter-spacing:.06em}
-.btn-p{background:var(--a);border:none;border-radius:10px;color:#fff;font-weight:600;font-size:14px;padding:12px 26px;cursor:pointer}
-
-/* ── HISTORY ── */
-.hst-hd{padding:max(env(safe-area-inset-top),36px) 20px 16px;border-bottom:1px solid var(--b);display:flex;align-items:center;gap:11px}
-.hst-hd h2{font-family:'Bebas Neue',sans-serif;font-size:32px;flex:1}
-.hst-list{padding:12px 12px 90px;display:flex;flex-direction:column;gap:9px}
-.hst-sum{background:var(--card);border:1px solid var(--b);border-radius:12px;padding:14px 16px;display:flex;gap:16px}
-.hsn{font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--a);line-height:1}
-.hsl{font-family:'Bebas Neue',sans-serif;font-size:13px;line-height:1.1}
-.hss{font-size:11px;color:#444;margin-top:2px}
-.hst-card{background:var(--card);border:1px solid var(--b);border-radius:12px;padding:13px 15px}
-.hc-top{display:flex;justify-content:space-between;align-items:center}
-.hc-dt{font-size:11px;color:var(--m);text-transform:uppercase;letter-spacing:.06em}
-.hc-nm{font-family:'Bebas Neue',sans-serif;font-size:17px;margin-top:2px}
-.hc-sb{font-size:11px;color:#555;margin-top:1px}
-.hc-st{display:flex;gap:13px;margin-top:6px}
-.hc-s{font-size:12px;color:var(--m)}
-.hc-s b{color:#F0F0F0;font-weight:600}
-.no-hist{text-align:center;padding:50px 22px;color:var(--m);font-size:13px}
-
-textarea.form-input{resize:none;height:72px}
-select.form-input option{background:#1A1A1A}
-
-/* ── MODERN WORKOUT LAYOUT ── */
-.ex-card-modern{background:linear-gradient(135deg, var(--card) 0%, #252525 100%);border:1px solid var(--b);border-radius:16px;overflow:hidden;padding:0;transition:all .2s;position:relative;overflow:hidden}
-.ex-card-modern::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg, var(--ex-color), transparent);opacity:.8}
-.ex-card-modern.xdone::before{background:linear-gradient(90deg, #00FF00, transparent)}
-.ex-head-modern{padding:14px 16px;display:flex;gap:12px;align-items:flex-start;position:relative;z-index:2}
-.ex-progress-ring{width:52px;height:52px;flex-shrink:0;position:relative;display:flex;align-items:center;justify-content:center}
-.ex-progress-ring svg{width:100%;height:100%;transform:rotate(-90deg)}
-.ex-progress-text{font-family:'Bebas Neue',sans-serif;font-size:14px;font-weight:700;color:var(--ex-color)}
-.ex-info{flex:1;min-width:0}
-.ex-nm-modern{font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:.03em;line-height:1.1;color:#F0F0F0;margin-bottom:3px}
-.ex-quick{display:flex;gap:8px;font-size:10px;color:var(--m);margin-top:4px;flex-wrap:wrap}
-.ex-quick-tag{background:#1A1A1A;padding:2px 7px;border-radius:4px;border:1px solid #333}
-.ex-body{padding:0 16px 12px;display:flex;flex-direction:column;gap:8px;position:relative;z-index:2}
-.ex-tip-modern{font-size:12px;color:#00FF00;background:#0D0D0D;padding:8px 10px;border-radius:8px;border-left:2px solid #00FF00;font-weight:500}
-.ex-controls{display:flex;gap:7px;flex-wrap:wrap;margin-top:4px}
-.sb-modern{width:40px;height:40px;border-radius:8px;border:2px solid var(--ex-color);background:transparent;color:var(--ex-color);font-family:'Bebas Neue',sans-serif;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;font-weight:700}
-.sb-modern.done{border-color:#00FF00;background:#00FF0018;color:#00FF00;box-shadow:0 0 12px rgba(0,255,0,.3)}
-.sb-modern:active{transform:scale(.92)}
-.weight-modern{display:flex;align-items:center;gap:8px;background:#1A1A1A;padding:8px 12px;border-radius:10px;border:1px solid #333;margin-top:4px}
-.wl-label{font-size:10px;color:var(--m);text-transform:uppercase;letter-spacing:.05em}
-.wl-value{font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--ex-color);font-weight:700}
-.wl-trend{font-size:11px;margin-left:auto;font-weight:600}
-.wl-input-wrap{display:flex;gap:4px;margin-left:auto}
-.wi-modern{width:65px;background:#0D0D0D;border:1px solid var(--ex-color);border-radius:6px;color:var(--ex-color);font-size:12px;font-weight:700;padding:6px;text-align:center;-webkit-appearance:none;appearance:none}
-.wi-modern:focus{outline:none;border-color:#00FF00;box-shadow:0 0 8px rgba(0,255,0,.2)}
-.wu-modern{font-size:10px;color:var(--m)}
-
-/* ── MODERN BACK BUTTON (BOTTOM) ── */
-.back-btn-footer{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:440px;padding:12px 16px;padding-bottom:max(12px,env(safe-area-inset-bottom));background:#0D0D0D;border-top:1px solid var(--b);display:flex;gap:8px;z-index:20}
-.back-btn-footer button{flex:1;background:var(--card);border:1px solid var(--b);border-radius:10px;color:#F0F0F0;font-size:13px;font-weight:600;padding:12px;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px}
-.back-btn-footer button:active{transform:scale(.96)}
-
-/* Screen flash effect */
-@keyframes flash{0%{background-color:transparent}50%{background-color:rgba(0,255,0,.3)}100%{background-color:transparent}}
-.screen-flash{animation:flash .4s ease-out}
+.menu-list{display:flex;flex-direction:column;gap:4px}
+.menu-item{display:flex;align-items:center;gap:14px;background:var(--bg);border:1px solid var(--b);border-radius:10px;padding:14px 16px;color:var(--text);font-family:'Inter',sans-serif;font-size:14px;font-weight:500;cursor:pointer;text-align:left;width:100%}
+.menu-item:active{background:var(--card-light)}
+.menu-item span{font-size:18px}
 </style>
 </head>
 <body>
-<div id="app"></div>
-<script>
-const MC={"Peito":"#FF6B6B","Tríceps":"#FFA07A","Ombros":"#FFD700","Costas":"#4ECDC4","Bíceps":"#45B7D1","Antebraço":"#74B9FF","Quadríceps":"#A29BFE","Isquiotibiais":"#DDA0DD","Glúteos":"#F0A500","Panturrilha":"#81ECEC","Core":"#55EFC4"};
-const GOAL_COLORS={"Massa":"#FF8F00","Emagrecimento":"#00BCD4","Ambos":"#00E676"};
-const LEVEL_ICONS={"Iniciante":"🌱","Intermediário":"💪","Avançado":"🔥"};
-const DAYS_NAMES=["Seg","Ter","Qua","Qui","Sex","Sáb","Dom"];
-const DEFAULT_SCH=["T1","T2","T3","DESCANSO","T4","T5","T6"];
-
-const W=[
-{id:"T1",label:"Treino 1",sub:"Push A — Peito · Ombros · Tríceps",color:"#FF3D00",icon:"🔴",exercises:[
-{name:"Supino Reto c/ Barra",sets:4,reps:"8–10",rest:90,tip:"Desça até tocar o peito, subida explosiva",muscles:{p:["Peito"],s:["Tríceps","Ombros"]},steps:["Deite no banco, barra na linha do peito. Pegada levemente mais larga que os ombros.","Desça de forma controlada até tocar levemente o peito — não quique.","Empurre explosivamente sem travar os cotovelos no topo."],yt:"supino reto barra como fazer academia"},
-{name:"Supino Inclinado c/ Halteres",sets:3,reps:"10–12",rest:75,tip:"Banco 30–45°, cotovelos levemente fechados",muscles:{p:["Peito"],s:["Tríceps","Ombros"]},steps:["Banco inclinado a 30–45°. Halteres na altura do peito superior.","Desça os halteres controlado até sentir o peito superior alongar.","Pressione para cima e levemente para dentro."],yt:"supino inclinado haltere como fazer"},
-{name:"Crucifixo c/ Halteres",sets:3,reps:"12–15",rest:60,tip:"Leve flexão no cotovelo, sinta o alongamento",muscles:{p:["Peito"],s:["Ombros"]},steps:["Deite no banco plano, halteres acima do peito, cotovelos levemente dobrados.","Abra os braços em arco até sentir o peito alongar bem.","Feche os braços como se abraçasse uma árvore grande."],yt:"crucifixo haltere banco como fazer"},
-{name:"Desenvolvimento Militar c/ Barra",sets:4,reps:"8–10",rest:90,tip:"Core firme, sem hiperestender a lombar",muscles:{p:["Ombros"],s:["Tríceps"]},steps:["Sentado, barra na frente na altura do peito, pegada na largura dos ombros.","Empurre a barra para cima até os braços estenderem acima da cabeça.","Desça de forma controlada até a altura do queixo."],yt:"desenvolvimento militar barra como fazer ombros"},
-{name:"Elevação Lateral c/ Haltere",sets:4,reps:"12–15",rest:60,tip:"Cotovelo levemente dobrado, sem balançar o tronco",muscles:{p:["Ombros"],s:[]},steps:["Em pé, halteres ao lado do corpo.","Levante os braços para os lados até ficarem paralelos ao chão.","Desça de forma controlada. Nada de balanço."],yt:"elevação lateral haltere ombros como fazer"},
-{name:"Tríceps Pulley — corda",sets:4,reps:"10–12",rest:60,tip:"Abra a corda no final, cotovelos fixos ao corpo",muscles:{p:["Tríceps"],s:[]},steps:["Polia alta. Cotovelos colados ao corpo segurando a corda.","Empurre para baixo até os braços estenderem. Abra as pontas.","Volte controlado — só os antebraços se movem."],yt:"triceps pulley corda como fazer"},
-]},
-{id:"T2",label:"Treino 2",sub:"Pull A — Costas · Bíceps",color:"#FF8F00",icon:"🟠",exercises:[
-{name:"Puxada Frontal — pegada larga",sets:4,reps:"8–10",rest:90,tip:"Cotovelos apontam para baixo, puxe até o peito",muscles:{p:["Costas"],s:["Bíceps"]},steps:["Polia alta, pegada mais larga que os ombros, palmas para frente.","Puxe a barra até o peito, inclinando levemente o tronco.","Retorne controlado, braços estendendo completamente."],yt:"puxada frontal pegada larga como fazer"},
-{name:"Remada Curvada c/ Barra",sets:4,reps:"8–10",rest:90,tip:"Tronco ~45°, puxe até o umbigo",muscles:{p:["Costas"],s:["Bíceps","Ombros"]},steps:["Incline o tronco a ~45°, joelhos levemente dobrados.","Puxe a barra até o umbigo, apertando as escápulas.","Desça controlado mantendo o tronco firme."],yt:"remada curvada barra como fazer"},
-{name:"Remada Unilateral c/ Haltere",sets:3,reps:"10–12",rest:75,tip:"Rotação leve do tronco no final",muscles:{p:["Costas"],s:["Bíceps"]},steps:["Apoie joelho e mão do mesmo lado no banco. Halter na outra mão.","Puxe o halter em direção ao quadril, cotovelo próximo ao corpo.","Desça completamente, sentindo o alongamento da costas."],yt:"remada unilateral haltere como fazer"},
-{name:"Pull-over c/ Haltere",sets:3,reps:"12–15",rest:60,tip:"Sinta o latíssimo alongar completamente",muscles:{p:["Costas"],s:["Peito"]},steps:["Deite transversalmente no banco, ombros apoiados. Halter com as duas mãos.","Desça o halter para trás da cabeça em arco, cotovelos levemente dobrados.","Retorne contraindo costas e peito."],yt:"pullover haltere banco como fazer"},
-{name:"Rosca Direta c/ Barra EZ",sets:4,reps:"8–10",rest:60,tip:"Cotovelos fixos, sem balançar o tronco",muscles:{p:["Bíceps"],s:["Antebraço"]},steps:["Em pé, barra EZ com pegada supinada. Cotovelos colados ao corpo.","Dobre os cotovelos levantando a barra até próximo dos ombros.","Desça de forma controlada, sem soltar bruscamente."],yt:"rosca direta barra EZ como fazer"},
-{name:"Rosca Martelo c/ Haltere",sets:3,reps:"10–12",rest:60,tip:"Palmas para dentro durante todo o movimento",muscles:{p:["Bíceps"],s:["Antebraço"]},steps:["Em pé, halteres ao lado com palmas para o corpo.","Levante um halter de cada vez sem rodar o punho.","Desça controlado antes de subir o outro lado."],yt:"rosca martelo haltere como fazer biceps"},
-]},
-{id:"T3",label:"Treino 3",sub:"Legs A — Quadríceps · Glúteos",color:"#FFD600",icon:"🟡",exercises:[
-{name:"Hack Squat na Máquina",sets:4,reps:"8–10",rest:120,tip:"Costas na plataforma, amplitude total",muscles:{p:["Quadríceps","Glúteos"],s:["Isquiotibiais"]},steps:["Apoie costas e ombros na plataforma. Pés na largura dos ombros, levemente abertos.","Desça até as coxas ficarem paralelas ou abaixo.","Empurre para cima sem travar os joelhos."],yt:"hack squat máquina como usar correto"},
-{name:"Leg Press 45°",sets:4,reps:"10–12",rest:90,tip:"Não trave os joelhos, não levante o quadril",muscles:{p:["Quadríceps","Glúteos"],s:["Isquiotibiais"]},steps:["Pés na plataforma na largura dos ombros. Solte o trava.","Desça até os joelhos chegarem a ~90°.","Empurre sem bloquear completamente os joelhos."],yt:"leg press 45 como fazer correto"},
-{name:"Cadeira Extensora",sets:3,reps:"12–15",rest:60,tip:"Pause 1s no topo — máximo pico de contração",muscles:{p:["Quadríceps"],s:[]},steps:["Ajuste para o joelho alinhar ao eixo. Pés sob o rolo.","Estenda as pernas completamente para cima.","Segure 1s no topo, desça lentamente até ~90°."],yt:"cadeira extensora como usar quadríceps"},
-{name:"Mesa Flexora Deitada",sets:3,reps:"12–15",rest:60,tip:"Descida lenta 3s — isso constrói mais do que a subida",muscles:{p:["Isquiotibiais"],s:["Panturrilha"]},steps:["Deite no aparelho, joelhos alinhados ao eixo, rolo sob os tornozelos.","Dobre os joelhos puxando em direção ao glúteo.","Desça muito lentamente — conte 3 segundos."],yt:"mesa flexora isquiotibial como usar"},
-{name:"Stiff c/ Halteres",sets:3,reps:"10–12",rest:75,tip:"Costas retas — a lombar não faz o trabalho",muscles:{p:["Isquiotibiais","Glúteos"],s:["Costas"]},steps:["Em pé, halteres na frente das coxas, joelhos levemente dobrados.","Incline o tronco para frente com as costas retas, descendo os halteres.","Suba usando glúteo e posterior da coxa."],yt:"stiff haltere como fazer isquiotibial"},
-{name:"Panturrilha em Pé — Smith",sets:4,reps:"15–20",rest:45,tip:"Amplitude máxima — suba e desça completamente",muscles:{p:["Panturrilha"],s:[]},steps:["Pontas dos pés em borda de degrau. Barra nos ombros.","Desça o calcanhar o máximo possível.","Suba na ponta dos pés o mais alto possível. Sem quicar."],yt:"panturrilha em pé smith como fazer academia"},
-]},
-{id:"T4",label:"Treino 4",sub:"Push B — Peito · Ombros · Tríceps",color:"#E040FB",icon:"🟣",exercises:[
-{name:"Supino Declinado c/ Halteres",sets:4,reps:"8–10",rest:90,tip:"Banco –15°/–30°, foca o peito inferior",muscles:{p:["Peito"],s:["Tríceps","Ombros"]},steps:["Banco em declive (~15–30°). Halteres na linha do peito inferior.","Desça os halteres controlado sentindo o peito inferior alongar.","Pressione para cima e levemente para dentro."],yt:"supino declinado haltere como fazer peito inferior"},
-{name:"Crossover na Polia",sets:3,reps:"12–15",rest:60,tip:"Mãos se encontram na frente — não nos cotovelos",muscles:{p:["Peito"],s:["Ombros"]},steps:["Polias altas nos dois lados. Fique no centro, um passo à frente.","Puxe os cabos em arco para baixo e frente, mãos se encontrando.","Retorne controlado sentindo o peito alongar."],yt:"crossover polia alta peito como fazer"},
-{name:"Crucifixo Inclinado c/ Halteres",sets:3,reps:"12–15",rest:60,tip:"Banco 30°, foca o peito superior",muscles:{p:["Peito"],s:["Ombros"]},steps:["Banco inclinado a 30°. Halteres acima do peito superior, cotovelos levemente dobrados.","Abra os braços em arco até sentir o peito superior alongar.","Feche os braços de volta contraindo o peito."],yt:"crucifixo inclinado haltere peito superior como fazer"},
-{name:"Desenvolvimento c/ Halteres",sets:4,reps:"10–12",rest:75,tip:"Maior amplitude que a barra — mais ativação",muscles:{p:["Ombros"],s:["Tríceps"]},steps:["Sentado, halteres na altura dos ombros, palmas para frente.","Pressione para cima até os braços estenderem.","Desça até abaixo das orelhas para máxima amplitude."],yt:"desenvolvimento haltere ombros como fazer"},
-{name:"Elevação Frontal c/ Haltere",sets:3,reps:"12–15",rest:60,tip:"Alternado, sem balançar o tronco",muscles:{p:["Ombros"],s:[]},steps:["Em pé, halteres na frente das coxas.","Levante um braço à frente até a altura dos ombros.","Desça controlado antes de subir o outro lado."],yt:"elevação frontal haltere ombros como fazer"},
-{name:"Tríceps Testa c/ Barra EZ",sets:3,reps:"10–12",rest:60,tip:"Só os antebraços se movem — cotovelos fixos",muscles:{p:["Tríceps"],s:[]},steps:["Deite no banco, barra EZ acima da testa com braços estendidos.","Dobre apenas os cotovelos descendo a barra em direção à testa.","Estenda de volta. Cotovelos apontam para o teto o tempo todo."],yt:"triceps testa barra EZ como fazer"},
-]},
-{id:"T5",label:"Treino 5",sub:"Pull B — Costas · Bíceps",color:"#00BCD4",icon:"🔵",exercises:[
-{name:"Puxada c/ Pegada Supinada",sets:4,reps:"8–10",rest:90,tip:"Pegada fechada, bíceps mais ativo",muscles:{p:["Costas"],s:["Bíceps"]},steps:["Polia alta, pegada supinada (palmas para você), fechada.","Puxe até o peito, inclinando levemente o tronco.","Retorne controlado, braços estendendo completamente."],yt:"puxada supinada pegada fechada biceps costas como fazer"},
-{name:"Remada c/ Haltere no Cabo",sets:4,reps:"10–12",rest:75,tip:"Rotação leve do tronco no final",muscles:{p:["Costas"],s:["Bíceps"]},steps:["Polia baixa, segure a alça com uma mão. Tronco levemente inclinado.","Puxe em direção ao quadril, cotovelo para trás.","Retorne completamente. Alterne os lados."],yt:"remada unilateral polia baixa como fazer costas"},
-{name:"Remada Baixa na Polia — triângulo",sets:3,reps:"10–12",rest:75,tip:"Tronco ereto, apertar as escápulas no final",muscles:{p:["Costas"],s:["Bíceps"]},steps:["Sente na polia baixa, pés apoiados, costas eretas.","Puxe o triângulo até o abdômen, apertando as escápulas.","Estenda os braços de forma controlada."],yt:"remada baixa polia triangulo como fazer"},
-{name:"Encolhimento c/ Halteres (trapézio)",sets:3,reps:"12–15",rest:60,tip:"Suba direto — sem circular os ombros",muscles:{p:["Ombros"],s:["Costas"]},steps:["Em pé, halteres ao lado do corpo.","Eleve os ombros em direção às orelhas o máximo possível.","Desça de forma controlada. Sem rotação."],yt:"encolhimento haltere trapezio como fazer"},
-{name:"Rosca Concentrada c/ Haltere",sets:3,reps:"10–12",rest:60,tip:"Cotovelo apoiado na parte interna da coxa",muscles:{p:["Bíceps"],s:[]},steps:["Sente na ponta do banco. Cotovelo na parte interna da coxa.","Levante o halter até o ombro, supinando o punho no topo.","Desça muito controlado — máximo isolamento."],yt:"rosca concentrada haltere biceps como fazer"},
-{name:"Rosca 21 c/ Barra EZ",sets:3,reps:"21",rest:75,tip:"7 embaixo + 7 cima + 7 completo sem parar",muscles:{p:["Bíceps"],s:["Antebraço"]},steps:["7 reps: da posição inicial até o meio (90°).","7 reps: do meio até completamente em cima.","7 reps: amplitude total. Sem parar entre as 3 fases."],yt:"rosca 21 barra EZ biceps como fazer"},
-]},
-{id:"T6",label:"Treino 6",sub:"Legs B — Posterior · Glúteos",color:"#00C853",icon:"🟢",exercises:[
-{name:"Terra Romeno c/ Barra",sets:4,reps:"8–10",rest:120,tip:"Barra raspa as pernas, costas SEMPRE retas",muscles:{p:["Isquiotibiais","Glúteos"],s:["Costas"]},steps:["Barra na frente das coxas. Pés na largura do quadril, joelhos levemente dobrados.","Incline o tronco para frente empurrando o quadril para trás, barra descendo pelas pernas.","Suba contraindo glúteo e posterior — a lombar não faz o trabalho."],yt:"terra romeno barra como fazer correto isquiotibial"},
-{name:"Afundo c/ Halteres",sets:4,reps:"10–12 cada",rest:75,tip:"Joelho traseiro quase toca o chão",muscles:{p:["Quadríceps","Glúteos"],s:["Isquiotibiais"]},steps:["Em pé, halteres em cada mão.","Dê um passo à frente e desça até o joelho traseiro quase tocar o chão.","Empurre com o pé da frente para voltar. Alterne as pernas."],yt:"afundo haltere como fazer correto"},
-{name:"Cadeira Abdutora",sets:3,reps:"15–20",rest:60,tip:"Movimento lento — não use impulso",muscles:{p:["Glúteos"],s:[]},steps:["Sente com as almofadas na parte externa das coxas.","Empurre as pernas para fora, contraindo o glúteo.","Retorne muito controlado — não deixe o peso bater."],yt:"cadeira abdutora gluteo como usar academia"},
-{name:"Mesa Flexora Sentada",sets:4,reps:"12–15",rest:60,tip:"Sentada ativa mais o bíceps femoral que deitada",muscles:{p:["Isquiotibiais"],s:["Panturrilha"]},steps:["Sente na mesa flexora sentada, rolo sobre os tornozelos.","Empurre o rolo para baixo contraindo o isquiotibial.","Retorne lentamente em 3 segundos."],yt:"mesa flexora sentada isquiotibial como usar"},
-{name:"Leg Press Sumô (pés altos e abertos)",sets:3,reps:"12–15",rest:75,tip:"Pés no alto da plataforma e abertos → glúteo e posterior",muscles:{p:["Glúteos","Isquiotibiais"],s:["Quadríceps"]},steps:["No Leg Press, pés na parte ALTA da plataforma, bem afastados e apontados para fora.","Desça até os joelhos chegarem a 90°.","Empurre sentindo o glúteo trabalhar."],yt:"leg press pes altos abertos gluteo como fazer"},
-{name:"Panturrilha Sentado — Sóleo",sets:4,reps:"15–20",rest:45,tip:"Músculo profundo — diferente da panturrilha em pé",muscles:{p:["Panturrilha"],s:[]},steps:["Sente na máquina, rolo nas coxas próximo ao joelho.","Desça o calcanhar o máximo possível.","Suba completamente na ponta dos pés. Sem quicar."],yt:"panturrilha sentado soleo maquina como usar"},
-]},
-];
-
-// ── STORAGE ───────────────────────────────────────────────────
-const wKey=n=>"wmb:w:"+n.replace(/\W+/g,"_").slice(0,28);
-const store={
-  get:k=>{try{return JSON.parse(localStorage.getItem(k));}catch{return null;}},
-  set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch{}},
-};
-const saveWeight=(n,w)=>{if(!w||isNaN(+w))return;const k=wKey(n);let h=store.get(k)||[];const td=new Date().toDateString();h=h.filter(x=>new Date(x.ts).toDateString()!==td);h.unshift({ts:Date.now(),w:+w});if(h.length>30)h=h.slice(0,30);store.set(k,h);};
-const getWeight=n=>store.get(wKey(n))||[];
-const saveHist=e=>{let h=store.get("wmb:hist")||[];h.unshift(e);if(h.length>60)h=h.slice(0,60);store.set("wmb:hist",h);};
-const getHist=()=>store.get("wmb:hist")||[];
-const getProfile=()=>store.get("wmb:profile")||null;
-const saveProfile=p=>store.set("wmb:profile",p);
-const getSch=()=>store.get("wmb:sch")||["T1","T2","T3","DESCANSO","T4","T5","T6"];
-const saveSch=s=>store.set("wmb:sch",s);
-
-// ── STATE ─────────────────────────────────────────────────────
-let S={view:"home",selIdx:null,compSets:{},wInputs:{},lastW:{},timer:{on:false,secs:0,total:0},modal:null,modalWH:[],t0:0,settingsTab:"perfil"};
-let timerInt=null;
-const fmt=s=>`${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`;
-const fmtD=ts=>new Date(ts).toLocaleDateString("pt-BR",{day:"2-digit",month:"short"});
-const fmtDL=ts=>new Date(ts).toLocaleDateString("pt-BR",{weekday:"short",day:"2-digit",month:"short"});
-
-function syncInputs(){document.querySelectorAll(".wi, .wi-modern").forEach(el=>{S.wInputs[el.dataset.i]=el.value;});}
-
-function render(){
-  document.getElementById("app").innerHTML=
-    S.view==="home"?vHome():
-    S.view==="workout"?vWorkout():
-    S.view==="history"?vHistory():
-    S.view==="done"?vDone():"";
-  if(S.modal)document.getElementById("app").insertAdjacentHTML("beforeend",vModal());
-  if(S.view==="settings")document.getElementById("app").innerHTML=vSettings();
-  if(S.timer.on){ensureRestOverlay();renderTimer();}
-}
-
-// ── VIEWS ─────────────────────────────────────────────────────
-function vHome(){
-  const sch=getSch();
-  const prof=getProfile();
-  const schDots=sch.map((id,i)=>{
-    if(id==="DESCANSO")return`<div class="sch-i"><div class="sch-dot" style="font-size:8px;color:#333">ZZZ</div><div class="sch-day">${DAYS_NAMES[i]}</div></div>`;
-    const wo=W.find(x=>x.id===id);if(!wo)return"";
-    return`<div class="sch-i"><div class="sch-dot" style="border-color:${wo.color}66;color:${wo.color};font-size:9px">${id}</div><div class="sch-day" style="color:#555">${DAYS_NAMES[i]}</div></div>`;
-  }).join("");
-  const wIds=[...new Set(sch.filter(x=>x!=="DESCANSO"))];
-  const cards=wIds.map(id=>{
-    const w=W.find(x=>x.id===id);if(!w)return"";
-    const i=W.indexOf(w);
-    return`<div class="day-card" data-act="start" data-i="${i}"><div class="di" style="background:${w.color}22">${w.icon}</div><div style="flex:1"><div class="d-lbl">${w.label}</div><div class="d-sub">${w.sub}</div><div class="d-meta">${w.exercises.length} exercícios · ${w.exercises.reduce((a,e)=>a+e.sets,0)} séries · +20min cardio</div></div><div style="color:#666;font-size:20px">›</div></div>`;
-  }).join("");
-  const profCard=prof?`<div class="profile-card" data-act="settings"><div class="pc-avatar">💪</div><div style="flex:1"><div class="pc-name">${prof.name||"Aluno"}</div><div class="pc-meta">${[prof.age?prof.age+"anos":"",prof.weight?prof.weight+"kg":"",prof.height?prof.height+"cm":""].filter(Boolean).join(" · ")||"Toque para editar"}</div></div>${prof.goal?`<div class="pc-badge" style="background:${GOAL_COLORS[prof.goal]||"#666"}22;color:${GOAL_COLORS[prof.goal]||"#666"};border:1px solid ${GOAL_COLORS[prof.goal]||"#666"}33">${prof.goal}</div>`:""}</div>`:`<div class="profile-card" data-act="settings" style="border-style:dashed;border-color:#333"><div class="pc-avatar" style="background:#1E1E1E;border-color:#333">👤</div><div><div class="d-sub" style="color:#555">Nenhum perfil configurado</div><div class="d-meta">Toque para criar sua ficha</div></div><div style="color:#555;font-size:20px;margin-left:auto">›</div></div>`;
-  return`<div class="hd"><div><h1>WMB<br>GYM</h1><div class="hd-sub">Massa · Emagrecimento</div></div><div class="hd-r"><button class="icon-btn" data-act="history">📊</button><button class="icon-btn" data-act="settings">⚙️</button></div></div>${profCard}<div class="sch-wrap"><div class="sch-lbl">Rotação semanal</div><div class="sch-row">${schDots}</div></div><div class="day-list">${cards}</div>`;
-}
-
-function vWorkout(){
-  const wo=W[S.selIdx];
-  const done=Object.values(S.compSets).flat().filter(Boolean).length;
-  const total=Object.values(S.compSets).flat().length;
-  const pct=total>0?done/total*100:0;
-  
-  const cards=wo.exercises.map((ex,i)=>{
-    const sets=S.compSets[i]||[],xdone=sets.every(Boolean);
-    const doneCount=sets.filter(Boolean).length;
-    const circleRadius=20,circumference=2*Math.PI*circleRadius;
-    const circleProgress=sets.length>0?(doneCount/sets.length)*circumference:0;
-    
-    const lw=S.lastW[ex.name]||[],lastVal=lw[0]?.w,curW=S.wInputs[i]||"";
-    const trend=lastVal&&curW&&+curW!==lastVal?(+curW>lastVal?"↑":"↓"):"";
-    const trendColor=trend==="↑"?"#00FF00":"#FF6B6B";
-    
-    return`<div class="ex-card-modern${xdone?" xdone":""}" style="--ex-color:${wo.color}"><div class="ex-head-modern"><div class="ex-progress-ring"><svg viewBox="0 0 44 44"><circle cx="22" cy="22" r="${circleRadius}" fill="none" stroke="${wo.color}" stroke-width="2" opacity=".2"/><circle cx="22" cy="22" r="${circleRadius}" fill="none" stroke="${xdone?'#00FF00':wo.color}" stroke-width="2" stroke-dasharray="${circumference}" stroke-dashoffset="${circumference-circleProgress}" stroke-linecap="round"/></svg><div class="ex-progress-text">${doneCount}/${sets.length}</div></div><div class="ex-info"><div class="ex-nm-modern">${ex.name}</div><div class="ex-quick"><span class="ex-quick-tag">${ex.sets}x${ex.reps}</span><span class="ex-quick-tag">⏱️ ${fmt(ex.rest)}</span></div></div></div><div class="ex-body"><div class="ex-tip-modern">💡 ${ex.tip}</div><div class="weight-modern"><div><div class="wl-label">Carga</div><div class="wl-value">${lastVal?lastVal:"-"}kg</div></div><div class="wl-input-wrap"><input class="wi-modern" type="number" inputmode="decimal" placeholder="0" value="${curW}" data-i="${i}"><span class="wu-modern">kg</span>${trend?`<span class="wl-trend" style="color:${trendColor}">${trend}</span>`:""}</div></div><div class="ex-controls">${sets.map((d,si)=>`<button class="sb-modern${d?' done':''}" data-act="set" data-ei="${i}" data-si="${si}">${d?'✓':si+1}</button>`).join("")}</div></div></div>`;
-  }).join("");
-  
-  const fin=pct>=100?`<div style="padding:0 12px 12px"><button class="fin-btn" style="background:#00FF00;color:#000;font-weight:800" data-act="finish">🏆 FINALIZAR TREINO</button></div>`:"";
-  const ro=S.timer.on?`<div class="ro" id="rest-overlay"></div>`:"";
-  const backBtn=`<div class="back-btn-footer"><button data-act="back">‹ Voltar</button></div>`;
-  
-  return`<div class="wh"><div class="wh-top"><div style="flex:1"><div class="wh-l">${wo.label}</div><div class="wh-s">${wo.sub}</div></div><div class="cb">🏃 +20min</div></div><div class="pb"><div class="pb-f" style="width:${pct}%;background:${wo.color}"></div></div><div class="pb-l"><span>Progresso</span><span style="color:${wo.color}">${done}/${total} séries</span></div></div><div class="ex-list">${cards}</div>${fin}${ro}${backBtn}`;
-}
-function vModal(){
-  const ex=S.modal;
-  const pTags=ex.muscles.p.map(m=>`<span class="mtag" style="background:${MC[m]}33;color:${MC[m]};border:1px solid ${MC[m]}55">${m}</span>`).join("");
-  const sTags=ex.muscles.s.map(m=>`<span class="mtag sec-tag">${m}</span>`).join("");
-  const steps=ex.steps.map((s,i)=>`<div class="stp"><div class="stp-n">${i+1}</div><div class="stp-t">${s}</div></div>`).join("");
-  const wh=S.modalWH.slice(0,6);
-  const whRows=wh.length?`<div class="slbl">Histórico de carga</div><div class="whl">${wh.map((h,i)=>{const prev=wh[i+1]?.w,diff=prev!=null?+(h.w-prev).toFixed(1):null;return`<div class="whr"><div class="whd">${fmtD(h.ts)}</div><div style="display:flex;align-items:center"><div class="whv" style="color:${i===0?'#FF3D00':'#F0F0F0'}">${h.w}kg</div>${diff!=null?`<span class="whdiff ${diff>0?'up':diff<0?'dn':''}">${diff>0?'+'+diff:diff===0?'=':diff}</span>`:""}</div></div>`;}).join("")}</div>`:"";
-  return`<div class="mo" id="modal-overlay"><div class="ms"><div class="mh"></div><div class="mt">${ex.name}</div><div class="mtags">${pTags}${sTags}</div><div class="slbl">Como fazer</div><div class="stps">${steps}</div>${whRows}<a class="yt-btn" href="https://www.youtube.com/results?search_query=${encodeURIComponent(ex.yt)}" target="_blank" rel="noopener">▶ Buscar no YouTube</a><button class="cl-btn" data-act="closemodal">Fechar</button></div></div>`;
-}
-
-function vSettings(){
-  const tab=S.settingsTab;
-  const prof=getProfile()||{};
-  const sch=getSch();
-  const opts=["DESCANSO",...W.map(w=>w.id)];
-  const optLabels={"DESCANSO":"🛌 Descanso","T1":"T1 — Push A","T2":"T2 — Pull A","T3":"T3 — Legs A","T4":"T4 — Push B","T5":"T5 — Pull B","T6":"T6 — Legs B"};
-
-  const perfil=`
-  <div class="form-row">
-    <div class="form-field"><label class="form-label">Nome</label><input class="form-input" id="f-name" placeholder="Seu nome" value="${prof.name||""}"></div>
-    <div class="form-field"><label class="form-label">Idade</label><input class="form-input" id="f-age" type="number" inputmode="numeric" placeholder="25" value="${prof.age||""}"></div>
+<div id="app">
+  <div class="loading-screen">
+    <div class="spinner"></div>
+    <div class="loading-text">Inicializando...</div>
   </div>
-  <div class="form-row">
-    <div class="form-field"><label class="form-label">Peso atual (kg)</label><input class="form-input" id="f-weight" type="number" inputmode="decimal" placeholder="75" value="${prof.weight||""}"></div>
-    <div class="form-field"><label class="form-label">Altura (cm)</label><input class="form-input" id="f-height" type="number" inputmode="numeric" placeholder="175" value="${prof.height||""}"></div>
-  </div>
-  <div class="form-field">
-    <label class="form-label">Objetivo</label>
-    <div class="radio-group">
-      ${["Massa","Emagrecimento","Ambos"].map(g=>`<button class="radio-btn${prof.goal===g?" sel":""}" data-radio="goal" data-val="${g}">${g}</button>`).join("")}
-    </div>
-  </div>
-  <div class="form-field">
-    <label class="form-label">Nível</label>
-    <div class="radio-group">
-      ${["Iniciante","Intermediário","Avançado"].map(l=>`<button class="radio-btn${prof.level===l?" sel":""}" data-radio="level" data-val="${l}">${LEVEL_ICONS[l]} ${l}</button>`).join("")}
-    </div>
-  </div>
-  <div class="form-field"><label class="form-label">Restrições / Observações</label><textarea class="form-input" id="f-notes" placeholder="Ex: lesão no ombro direito, evitar exercícios pesados de ombro...">${prof.notes||""}</textarea></div>
-  <button class="save-btn" data-act="saveprofile">Salvar Perfil</button>`;
+</div>
 
-  const rotacao=`
-  <div style="font-size:12px;color:#555;margin-bottom:12px">Defina qual treino vai em cada dia da semana. Você pode ter mais de um dia de descanso ou repetir treinos.</div>
-  ${sch.map((id,i)=>{
-    const wo=id!=="DESCANSO"?W.find(x=>x.id===id):null;
-    const dotStyle=wo?`border-color:${wo.color}66;color:${wo.color}`:"border-color:#333;color:#444;font-size:8px";
-    const dotText=wo?id:"ZZZ";
-    return`<div class="sch-config-row"><div class="sch-config-day">${DAYS_NAMES[i]}</div><div class="sch-config-dot" style="${dotStyle}">${dotText}</div><select class="sch-select" data-schidx="${i}">${opts.map(o=>`<option value="${o}"${id===o?" selected":""}>${optLabels[o]}</option>`).join("")}</select></div>`;
-  }).join("")}
-  <button class="save-btn" style="margin-top:14px" data-act="savesched">Salvar Rotação</button><div style="margin-top:20px;padding-top:20px;border-top:1px solid #333">
-    <div style="font-size:12px;color:#555;margin-bottom:14px;font-weight:600">⚠️ BACKUP DE DADOS</div>
-    <div style="display:flex;flex-direction:column;gap:8px">
-      <button class="save-btn" style="background:#4A9EFF;margin-top:0" data-act="export">📥 Exportar Dados</button>
-      <button class="save-btn" style="background:#555;margin-top:0" data-act="import">📤 Importar Dados</button>
-      <input type="file" id="import-file" accept=".json" style="display:none">
-    </div>
-    <div style="font-size:10px;color:#444;margin-top:12px;line-height:1.5">
-      Seu histórico e configurações ficam salvos no celular. Antes de fazer mudanças grandes, exporte seus dados como backup. Se trocar de aparelho, importe o arquivo antigo.
-    </div>
-  </div>`;
+<!-- Supabase client -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  return`<div style="padding-bottom:90px"><div class="hst-hd"><h2>CONFIGURAÇÕES</h2></div><div style="padding:16px 16px 0"><div class="tabs"><button class="tab${tab==="perfil"?" active":""}" data-act="stab" data-tab="perfil">👤 Perfil do Aluno</button><button class="tab${tab==="rotacao"?" active":""}" data-act="stab" data-tab="rotacao">📅 Rotação Semanal</button></div>${tab==="perfil"?perfil:rotacao}</div></div>`;
-}
-
-function vHistory(){
-  const h=getHist(),tw=h.length,ts=h.reduce((a,x)=>a+(x.sets||0),0),tm=h.reduce((a,x)=>a+(x.dur||0),0);
-  const backBtn=`<div class="back-btn-footer"><button data-act="back">‹ Voltar</button></div>`;return`<div><div class="hst-hd"><h2>HISTÓRICO</h2></div><div class="hst-list">${tw===0?`<div class="no-hist">Nenhum treino ainda.<br>Complete o primeiro!</div>`:`<div class="hst-sum"><div><div class="hsn">${tw}</div></div><div><div class="hsl">TREINOS COMPLETOS</div><div class="hss">${ts} séries · ${tm}min treinados</div></div></div>${h.map(e=>`<div class="hst-card"><div class="hc-top"><div class="hc-dt">${fmtDL(e.ts)}</div><div style="font-size:11px;color:#00E676">✓</div></div><div class="hc-nm">${e.label}</div><div class="hc-sb">${e.sub}</div><div class="hc-st"><div class="hc-s"><b>${e.sets}</b> séries</div><div class="hc-s"><b>${e.exs}</b> exercícios</div><div class="hc-s"><b>${e.dur}min</b></div></div></div>`).join("")}`}</div>`;
-}
-
-function vDone(){
-  const wo=W[S.selIdx],done=Object.values(S.compSets).flat().filter(Boolean).length;
-  const prof=getProfile();
-  return`<div class="done-sc"><div class="done-em">🏆</div><div class="done-ti">TREINO<br>CONCLUÍDO</div>${prof?.name?`<div style="font-size:14px;color:#666">Parabéns, <b style="color:#F0F0F0">${prof.name}</b>!</div>`:""}<div class="st-row"><div class="st"><div class="st-v">${done}</div><div class="st-l">Séries</div></div><div class="st"><div class="st-v">${wo.exercises.length}</div><div class="st-l">Exercícios</div></div></div><p class="done-sub">Cargas salvas. Não esqueça os 20min de esteira!</p><button class="btn-p" data-act="home">← Voltar</button></div>`;
-}
-
-// ── EVENTS ────────────────────────────────────────────────────
-document.addEventListener("click",e=>{
-  // radio buttons
-  const radio=e.target.closest("[data-radio]");
-  if(radio){
-    const grp=radio.dataset.radio,val=radio.dataset.val;
-    document.querySelectorAll(`[data-radio="${grp}"]`).forEach(b=>b.classList.remove("sel"));
-    radio.classList.add("sel");
-    return;
-  }
-  const el=e.target.closest("[data-act]");if(!el)return;
-  const act=el.dataset.act;
-
-  if(act==="start"){
-    syncInputs();const idx=+el.dataset.i;
-    const init={},wi={},lw={};
-    W[idx].exercises.forEach((ex,i)=>{init[i]=Array(ex.sets).fill(false);const h=getWeight(ex.name);lw[ex.name]=h;if(h[0])wi[i]=String(h[0].w);});
-    S={...S,view:"workout",selIdx:idx,compSets:init,wInputs:wi,lastW:lw,t0:Date.now(),timer:{on:false,secs:0,total:0}};render();
-  } else if(act==="back"){
-    if(S.view==="workout")syncInputs();
-    stopTimer();S={...S,view:"home",modal:null};render();
-  } else if(act==="home"){
-    stopTimer();S={...S,view:"home",selIdx:null,modal:null};render();
-  } else if(act==="history"){
-    S={...S,view:"history"};render();
-  } else if(act==="settings"){
-    S={...S,view:"settings",settingsTab:"perfil"};render();
-  } else if(act==="stab"){
-    S.settingsTab=el.dataset.tab;render();
-  } else if(act==="saveprofile"){
-    const p={
-      name:document.getElementById("f-name")?.value?.trim()||"",
-      age:document.getElementById("f-age")?.value||"",
-      weight:document.getElementById("f-weight")?.value||"",
-      height:document.getElementById("f-height")?.value||"",
-      goal:document.querySelector("[data-radio='goal'].sel")?.dataset.val||"",
-      level:document.querySelector("[data-radio='level'].sel")?.dataset.val||"",
-      notes:document.getElementById("f-notes")?.value?.trim()||"",
-    };
-    saveProfile(p);
-    const btn=document.querySelector("[data-act='saveprofile']");
-    if(btn){btn.textContent="✓ Salvo!";btn.style.background="#00E676";setTimeout(()=>{btn.textContent="Salvar Perfil";btn.style.background="";},1500);}
-  } else if(act==="savesched"){
-    const sels=document.querySelectorAll(".sch-select");
-    const sch=Array.from(sels).map(s=>s.value);
-    saveSch(sch);
-    const btn=document.querySelector("[data-act='savesched']");
-    if(btn){btn.textContent="✓ Salvo!";btn.style.background="#00E676";setTimeout(()=>{btn.textContent="Salvar Rotação";btn.style.background="";},1500);}
-  } else if(act==="set"){
-    syncInputs();const ei=+el.dataset.ei,si=+el.dataset.si,was=S.compSets[ei][si];
-    const ns={...S.compSets,[ei]:[...S.compSets[ei]]};ns[ei][si]=!was;S.compSets=ns;
-    if(!was){startTimer(W[S.selIdx].exercises[ei].rest);}
-    render();if(S.timer.on)renderTimer();
-  } else if(act==="skip"){
-    stopTimer();S.timer={on:false,secs:0,total:0};const ro=document.getElementById("rest-overlay");if(ro)ro.remove();
-  } else if(act==="modal"){
-    syncInputs();const i=+el.dataset.i,ex=W[S.selIdx].exercises[i];
-    S.modal=ex;S.modalWH=getWeight(ex.name);
-    const old=document.getElementById("modal-overlay");if(old)old.remove();
-    document.getElementById("app").insertAdjacentHTML("beforeend",vModal());
-  } else if(act==="closemodal"){
-    S.modal=null;const mo=document.getElementById("modal-overlay");if(mo)mo.remove();
-  } else if(act==="export"){
-    exportData();
-  } else if(act==="import"){
-    importData();
-  } else if(act==="finish"){
-    syncInputs();
-    W[S.selIdx].exercises.forEach((ex,i)=>{const w=S.wInputs[i];if(w&&!isNaN(+w))saveWeight(ex.name,+w);});
-    const dur=Math.round((Date.now()-S.t0)/60000)||1,wo=W[S.selIdx];
-    const done=Object.values(S.compSets).flat().filter(Boolean).length;
-    saveHist({ts:Date.now(),label:wo.label,sub:wo.sub,sets:done,totalSets:Object.values(S.compSets).flat().length,exs:wo.exercises.length,dur});
-    stopTimer();S={...S,view:"done"};render();
-  }
-});
-
-document.addEventListener("click",e=>{if(e.target.id==="modal-overlay"){S.modal=null;document.getElementById("modal-overlay")?.remove();}});
-document.addEventListener("input",e=>{if(e.target.classList.contains("wi")||e.target.classList.contains("wi-modern"))S.wInputs[e.target.dataset.i]=e.target.value;});
-
-// ── TIMER ─────────────────────────────────────────────────────
-function ensureRestOverlay(){
-  if(!document.getElementById("rest-overlay"))
-    document.getElementById("app").insertAdjacentHTML("beforeend",`<div class="ro" id="rest-overlay"></div>`);
-}
-function renderTimer(){
-  const ro=document.getElementById("rest-overlay");if(!ro)return;
-  const {secs,total}=S.timer,rR=24,rC=2*Math.PI*rR,dash=total>0?rC*(secs/total):0;
-  const ac=S.selIdx!==null?W[S.selIdx].color:"#FF3D00";
-  ro.innerHTML=`<div class="rring"><svg width="56" height="56" viewBox="0 0 56 56"><circle cx="28" cy="28" r="${rR}" fill="none" stroke="#2A2A2A" stroke-width="4"/><circle cx="28" cy="28" r="${rR}" fill="none" stroke="${ac}" stroke-width="4" stroke-dasharray="${rC.toFixed(2)}" stroke-dashoffset="${(rC-dash).toFixed(2)}" stroke-linecap="round" transform="rotate(-90 28 28)"/></svg><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:16px;color:${ac}">${secs}</div></div><div><div class="ro-lbl">Descanso</div><div class="ro-t">${fmt(secs)}</div></div><button class="skip" data-act="skip">Pular</button>`;
-}
-function startTimer(secs){
-  stopTimer();S.timer={on:true,secs,total:secs};
-  timerInt=setInterval(()=>{
-    S.timer.secs--;
-    if(S.timer.secs<=0){
-    stopTimer();
-    S.timer={on:false,secs:0,total:0};
-    document.getElementById("rest-overlay")?.remove();
-    
-    // Vibration + Flash effect
-    if(navigator.vibrate){navigator.vibrate([100,50,100,50,200]);}
-    const app=document.getElementById("app");
-    if(app){app.classList.add("screen-flash");setTimeout(()=>app.classList.remove("screen-flash"),600);}
-    return;
-  }
-    if(!document.getElementById("rest-overlay")){clearInterval(timerInt);return;}
-    renderTimer();
-  },1000);
-}
-function stopTimer(){clearInterval(timerInt);timerInt=null;}
-
-
-function exportData(){
-  const data={
-    profile:getProfile(),
-    history:getHist(),
-    schedule:getSch(),
-    weights:{}
-  };
-  const h=getHist();h.forEach(e=>{if(e.label){const wo=W.find(x=>x.label===e.label);if(wo){wo.exercises.forEach(ex=>{const wh=getWeight(ex.name);if(wh.length)data.weights[ex.name]=wh;});}}});
-  const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement("a");a.href=url;a.download=`wmb-backup-${new Date().toISOString().split("T")[0]}.json`;a.click();
-  URL.revokeObjectURL(url);
-}
-
-function importData(){document.getElementById("import-file").click();}
-
-document.getElementById("app").addEventListener("change",e=>{
-  if(e.target.id==="import-file"&&e.target.files[0]){
-    const file=e.target.files[0];
-    const reader=new FileReader();
-    reader.onload=ev=>{
-      try{
-        const data=JSON.parse(ev.target.result);
-        if(data.profile)saveProfile(data.profile);
-        if(data.schedule)saveSch(data.schedule);
-        if(data.history)store.set("wmb:hist",data.history);
-        if(data.weights){Object.entries(data.weights).forEach(([name,wh])=>{store.set(wKey(name),wh);});}
-        alert("✅ Dados restaurados com sucesso!");
-        location.reload();
-      }catch(err){alert("❌ Erro ao importar: arquivo inválido");}
-    };
-    reader.readAsText(file);
-  }
-});
-
-if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
-render();
-</script>
+<!-- App scripts (ordem importa!) -->
+<script src="config.js"></script>
+<script src="seed.js"></script>
+<script src="app.js"></script>
 </body>
 </html>

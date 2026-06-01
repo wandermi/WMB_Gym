@@ -1,0 +1,396 @@
+// ===========================================
+// WMB GYM v2 - Core Application
+// ===========================================
+
+// Supabase client
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Application state
+const APP = {
+  user: null,
+  profile: null,
+  workouts: [],
+  view: "loading",
+  loading: false,
+  error: null,
+  modal: null
+};
+
+// ===========================================
+// UTILITIES
+// ===========================================
+
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => document.querySelectorAll(sel);
+const el = (html) => { const t = document.createElement("template"); t.innerHTML = html.trim(); return t.content.firstChild; };
+
+function escapeHTML(s) {
+  if (s == null) return "";
+  return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"})[c]);
+}
+
+function showToast(msg, type = "info") {
+  const colors = { info: "#4A9EFF", success: "#00FF00", error: "#FF6B6B", warn: "#FFD600" };
+  const toast = el(`<div class="toast" style="background:${colors[type]}22;border-color:${colors[type]};color:${colors[type]}">${escapeHTML(msg)}</div>`);
+  document.body.appendChild(toast);
+  setTimeout(() => toast.classList.add("show"), 10);
+  setTimeout(() => { toast.classList.remove("show"); setTimeout(() => toast.remove(), 300); }, 3000);
+}
+
+// ===========================================
+// AUTH FUNCTIONS
+// ===========================================
+
+async function signUp(email, password, name) {
+  APP.loading = true;
+  render();
+  const { data, error } = await supabase.auth.signUp({
+    email, password,
+    options: { data: { name } }
+  });
+  APP.loading = false;
+  if (error) { showToast(error.message, "error"); render(); return false; }
+  showToast("Conta criada! Verifique seu email se necessário.", "success");
+  await checkSession();
+  return true;
+}
+
+async function signIn(email, password) {
+  APP.loading = true;
+  render();
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  APP.loading = false;
+  if (error) { showToast(error.message, "error"); render(); return false; }
+  showToast("Login realizado!", "success");
+  await checkSession();
+  return true;
+}
+
+async function signOut() {
+  await supabase.auth.signOut();
+  APP.user = null;
+  APP.profile = null;
+  APP.workouts = [];
+  APP.view = "auth";
+  render();
+}
+
+async function checkSession() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session) {
+    APP.user = session.user;
+    await loadUserData();
+  } else {
+    APP.view = "auth";
+    render();
+  }
+}
+
+// ===========================================
+// DATA FUNCTIONS
+// ===========================================
+
+async function loadProfile() {
+  const { data, error } = await supabase.from("profiles").select("*").eq("id", APP.user.id).single();
+  if (!error) APP.profile = data;
+}
+
+async function loadWorkouts() {
+  const { data: workouts, error } = await supabase.from("workouts")
+    .select("*, exercises(*)")
+    .eq("user_id", APP.user.id)
+    .order("position", { ascending: true });
+  if (error) { console.error(error); return; }
+  if (workouts) {
+    workouts.forEach(w => {
+      if (w.exercises) w.exercises.sort((a, b) => (a.position || 0) - (b.position || 0));
+    });
+    APP.workouts = workouts;
+  }
+}
+
+async function seedInitialWorkouts() {
+  showToast("Importando seu protocolo de treino...", "info");
+  for (const wkData of WORKOUTS_SEED) {
+    const { exercises, ...workout } = wkData;
+    const { data: newWorkout, error: wkError } = await supabase.from("workouts")
+      .insert({
+        user_id: APP.user.id,
+        name: workout.name,
+        sub: workout.sub,
+        color: workout.color,
+        icon: workout.icon,
+        position: workout.position,
+        letter: workout.letter,
+        protocol_name: PROTOCOL_DATA.name,
+        goal: PROTOCOL_DATA.goal
+      })
+      .select()
+      .single();
+    
+    if (wkError) { console.error("Erro workout:", wkError); continue; }
+    
+    const exercisesToInsert = exercises.map(ex => ({
+      workout_id: newWorkout.id,
+      name: ex.name,
+      sets: ex.sets,
+      reps: ex.reps,
+      rest: ex.rest,
+      tip: ex.tip || null,
+      instructions: ex.instructions || null,
+      method: ex.method || null,
+      is_warmup: ex.is_warmup || false,
+      is_mobility: ex.is_mobility || false,
+      duration_sec: ex.duration_sec || null,
+      muscles_primary: ex.muscles_primary || [],
+      muscles_secondary: ex.muscles_secondary || [],
+      steps: ex.steps || [],
+      position: ex.position
+    }));
+    
+    const { error: exError } = await supabase.from("exercises").insert(exercisesToInsert);
+    if (exError) console.error("Erro exercises:", exError);
+  }
+  
+  await supabase.from("protocol_notes").insert({
+    user_id: APP.user.id,
+    protocol_name: PROTOCOL_DATA.name,
+    cardio_instructions: PROTOCOL_DATA.cardio,
+    general_notes: PROTOCOL_DATA.notes
+  });
+  
+  showToast("Protocolo importado com sucesso!", "success");
+}
+
+async function loadUserData() {
+  APP.loading = true;
+  APP.view = "loading";
+  render();
+  
+  await loadProfile();
+  await loadWorkouts();
+  
+  if (APP.workouts.length === 0) {
+    await seedInitialWorkouts();
+    await loadWorkouts();
+  }
+  
+  APP.view = "home";
+  APP.loading = false;
+  render();
+}
+
+// ===========================================
+// VIEWS
+// ===========================================
+
+function vAuth() {
+  const isSignup = APP.authMode === "signup";
+  return `
+    <div class="auth-container">
+      <div class="auth-logo">
+        <div class="logo-text">WMB<br>GYM</div>
+        <div class="logo-sub">Seu treino, sua evolução</div>
+      </div>
+      <div class="auth-card">
+        <div class="auth-tabs">
+          <button class="auth-tab ${!isSignup ? "active" : ""}" data-act="setmode" data-mode="signin">Entrar</button>
+          <button class="auth-tab ${isSignup ? "active" : ""}" data-act="setmode" data-mode="signup">Cadastrar</button>
+        </div>
+        <form class="auth-form" data-act="${isSignup ? "submitsignup" : "submitsignin"}">
+          ${isSignup ? `<input type="text" id="auth-name" placeholder="Seu nome" required class="auth-input">` : ""}
+          <input type="email" id="auth-email" placeholder="Email" required class="auth-input">
+          <input type="password" id="auth-password" placeholder="Senha (mínimo 6 caracteres)" minlength="6" required class="auth-input">
+          <button type="submit" class="auth-btn" ${APP.loading ? "disabled" : ""}>
+            ${APP.loading ? "Carregando..." : (isSignup ? "Criar Conta" : "Entrar")}
+          </button>
+        </form>
+        ${!isSignup ? `<a href="#" class="auth-link" data-act="forgot">Esqueci minha senha</a>` : ""}
+      </div>
+    </div>
+  `;
+}
+
+function vLoading() {
+  return `<div class="loading-screen"><div class="spinner"></div><div class="loading-text">Carregando...</div></div>`;
+}
+
+function vHome() {
+  const name = APP.profile?.name || APP.user?.email?.split("@")[0] || "Atleta";
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
+  
+  const workoutCards = APP.workouts.map(w => {
+    const exCount = w.exercises?.length || 0;
+    const setsCount = w.exercises?.reduce((a, e) => a + (e.sets || 0), 0) || 0;
+    const mobilityCount = w.exercises?.filter(e => e.is_warmup || e.is_mobility).length || 0;
+    const mainCount = exCount - mobilityCount;
+    return `
+      <div class="workout-card" data-act="openworkout" data-id="${w.id}">
+        <div class="wc-letter" style="background:${w.color}22;color:${w.color};border-color:${w.color}66">${w.letter || "?"}</div>
+        <div class="wc-info">
+          <div class="wc-name">${escapeHTML(w.name)}</div>
+          <div class="wc-sub">${escapeHTML(w.sub || "")}</div>
+          <div class="wc-meta">
+            <span>${mainCount} exercícios</span>
+            <span>•</span>
+            <span>${setsCount} séries</span>
+            ${mobilityCount > 0 ? `<span>•</span><span>${mobilityCount} aquec/mob</span>` : ""}
+          </div>
+        </div>
+        <div class="wc-arrow">›</div>
+      </div>
+    `;
+  }).join("");
+  
+  return `
+    <div class="home-container">
+      <header class="home-header">
+        <div>
+          <div class="home-greeting">${greeting},</div>
+          <div class="home-name">${escapeHTML(name)} 💪</div>
+        </div>
+        <button class="header-btn" data-act="menu">⋮</button>
+      </header>
+      
+      <div class="protocol-badge">
+        <div class="pb-icon">🏆</div>
+        <div>
+          <div class="pb-name">PROTOCOLO 2</div>
+          <div class="pb-meta">Hipertrofia • Intermediário</div>
+        </div>
+      </div>
+      
+      <section class="section">
+        <h2 class="section-title">Meus Treinos</h2>
+        <div class="workout-list">
+          ${workoutCards || `<div class="empty-state">Nenhum treino encontrado</div>`}
+        </div>
+      </section>
+      
+      <section class="section">
+        <h2 class="section-title">Em breve</h2>
+        <div class="coming-soon">
+          <div class="cs-card">📊 Histórico completo</div>
+          <div class="cs-card">🎥 Vídeos dos exercícios</div>
+          <div class="cs-card">📈 Gráficos de evolução</div>
+          <div class="cs-card">📅 Rotação semanal</div>
+        </div>
+      </section>
+    </div>
+  `;
+}
+
+function vMenu() {
+  return `
+    <div class="modal-overlay" data-act="closemodal">
+      <div class="modal-sheet" onclick="event.stopPropagation()">
+        <div class="modal-handle"></div>
+        <div class="modal-title">Menu</div>
+        <div class="menu-list">
+          <button class="menu-item" data-act="goto" data-view="profile">
+            <span>👤</span> Meu Perfil
+          </button>
+          <button class="menu-item" data-act="goto" data-view="settings">
+            <span>⚙️</span> Configurações
+          </button>
+          <button class="menu-item" data-act="logout">
+            <span>🚪</span> Sair
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ===========================================
+// RENDER
+// ===========================================
+
+function render() {
+  const app = $("#app");
+  if (!app) return;
+  
+  let html = "";
+  switch (APP.view) {
+    case "loading": html = vLoading(); break;
+    case "auth": html = vAuth(); break;
+    case "home": html = vHome(); break;
+    default: html = vLoading();
+  }
+  
+  app.innerHTML = html;
+  
+  if (APP.modal === "menu") {
+    app.insertAdjacentHTML("beforeend", vMenu());
+  }
+}
+
+// ===========================================
+// EVENT HANDLERS
+// ===========================================
+
+document.addEventListener("click", async (e) => {
+  const el = e.target.closest("[data-act]");
+  if (!el) return;
+  
+  const act = el.dataset.act;
+  
+  if (act === "setmode") {
+    APP.authMode = el.dataset.mode;
+    render();
+  } else if (act === "menu") {
+    APP.modal = "menu";
+    render();
+  } else if (act === "closemodal") {
+    APP.modal = null;
+    render();
+  } else if (act === "logout") {
+    if (confirm("Tem certeza que deseja sair?")) await signOut();
+  } else if (act === "openworkout") {
+    showToast("Tela de treino em construção (Fase 3)", "info");
+  } else if (act === "goto") {
+    showToast("Em construção", "info");
+  }
+});
+
+document.addEventListener("submit", async (e) => {
+  const form = e.target.closest("[data-act]");
+  if (!form) return;
+  e.preventDefault();
+  
+  const act = form.dataset.act;
+  
+  if (act === "submitsignin") {
+    const email = $("#auth-email").value.trim();
+    const password = $("#auth-password").value;
+    await signIn(email, password);
+  } else if (act === "submitsignup") {
+    const name = $("#auth-name").value.trim();
+    const email = $("#auth-email").value.trim();
+    const password = $("#auth-password").value;
+    if (password.length < 6) { showToast("Senha precisa ter no mínimo 6 caracteres", "error"); return; }
+    await signUp(email, password, name);
+  }
+});
+
+// ===========================================
+// INIT
+// ===========================================
+
+supabase.auth.onAuthStateChange((event, session) => {
+  if (event === "SIGNED_IN" && session) {
+    APP.user = session.user;
+  } else if (event === "SIGNED_OUT") {
+    APP.user = null;
+    APP.view = "auth";
+    render();
+  }
+});
+
+(async function init() {
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  }
+  await checkSession();
+})();
