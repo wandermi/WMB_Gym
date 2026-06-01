@@ -3,7 +3,7 @@
 // ===========================================
 
 // Supabase client
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Application state
 const APP = {
@@ -44,7 +44,7 @@ function showToast(msg, type = "info") {
 async function signUp(email, password, name) {
   APP.loading = true;
   render();
-  const { data, error } = await supabase.auth.signUp({
+  const { data, error } = await sb.auth.signUp({
     email, password,
     options: { data: { name } }
   });
@@ -58,7 +58,7 @@ async function signUp(email, password, name) {
 async function signIn(email, password) {
   APP.loading = true;
   render();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { error } = await sb.auth.signInWithPassword({ email, password });
   APP.loading = false;
   if (error) { showToast(error.message, "error"); render(); return false; }
   showToast("Login realizado!", "success");
@@ -67,7 +67,7 @@ async function signIn(email, password) {
 }
 
 async function signOut() {
-  await supabase.auth.signOut();
+  await sb.auth.signOut();
   APP.user = null;
   APP.profile = null;
   APP.workouts = [];
@@ -76,7 +76,7 @@ async function signOut() {
 }
 
 async function checkSession() {
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await sb.auth.getSession();
   if (session) {
     APP.user = session.user;
     await loadUserData();
@@ -91,12 +91,12 @@ async function checkSession() {
 // ===========================================
 
 async function loadProfile() {
-  const { data, error } = await supabase.from("profiles").select("*").eq("id", APP.user.id).single();
+  const { data, error } = await sb.from("profiles").select("*").eq("id", APP.user.id).single();
   if (!error) APP.profile = data;
 }
 
 async function loadWorkouts() {
-  const { data: workouts, error } = await supabase.from("workouts")
+  const { data: workouts, error } = await sb.from("workouts")
     .select("*, exercises(*)")
     .eq("user_id", APP.user.id)
     .order("position", { ascending: true });
@@ -113,7 +113,7 @@ async function seedInitialWorkouts() {
   showToast("Importando seu protocolo de treino...", "info");
   for (const wkData of WORKOUTS_SEED) {
     const { exercises, ...workout } = wkData;
-    const { data: newWorkout, error: wkError } = await supabase.from("workouts")
+    const { data: newWorkout, error: wkError } = await sb.from("workouts")
       .insert({
         user_id: APP.user.id,
         name: workout.name,
@@ -148,11 +148,11 @@ async function seedInitialWorkouts() {
       position: ex.position
     }));
     
-    const { error: exError } = await supabase.from("exercises").insert(exercisesToInsert);
+    const { error: exError } = await sb.from("exercises").insert(exercisesToInsert);
     if (exError) console.error("Erro exercises:", exError);
   }
   
-  await supabase.from("protocol_notes").insert({
+  await sb.from("protocol_notes").insert({
     user_id: APP.user.id,
     protocol_name: PROTOCOL_DATA.name,
     cardio_instructions: PROTOCOL_DATA.cardio,
@@ -378,7 +378,7 @@ document.addEventListener("submit", async (e) => {
 // INIT
 // ===========================================
 
-supabase.auth.onAuthStateChange((event, session) => {
+sb.auth.onAuthStateChange((event, session) => {
   if (event === "SIGNED_IN" && session) {
     APP.user = session.user;
   } else if (event === "SIGNED_OUT") {
