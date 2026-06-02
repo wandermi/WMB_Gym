@@ -2,14 +2,37 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+
+<!-- PWA Generic -->
 <meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0A0A0A">
+<link rel="manifest" href="manifest.json">
+
+<!-- iOS Specific -->
+<meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="WMB GYM">
-<meta name="theme-color" content="#0D0D0D">
-<link rel="manifest" href="manifest.json">
+<meta name="format-detection" content="telephone=no">
+<meta name="apple-touch-fullscreen" content="yes">
+
+<!-- iOS Icons (vários tamanhos) -->
 <link rel="apple-touch-icon" href="icon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="icon.svg">
+<link rel="apple-touch-icon" sizes="167x167" href="icon.svg">
+<link rel="apple-touch-icon" sizes="152x152" href="icon.svg">
+<link rel="apple-touch-icon" sizes="120x120" href="icon.svg">
+
+<!-- iOS Splash -->
+<link rel="apple-touch-startup-image" href="splash.svg">
+
+<!-- Favicon -->
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+
+<!-- Open Graph -->
+<meta property="og:title" content="WMB GYM">
+<meta property="og:description" content="Seu treino, sua evolução">
+
 <title>WMB GYM</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -383,6 +406,39 @@ select.form-input{cursor:pointer;background-image:url("data:image/svg+xml;utf8,<
 .how-to-compact{background:var(--bg);border-radius:8px;padding:10px 12px;margin-bottom:10px;border-left:2px solid #4A9EFF}
 .how-to-list{display:flex;flex-direction:column;gap:6px;margin-top:6px}
 .hts-compact{font-size:12px;line-height:1.5;color:var(--text-soft)}
+
+/* ── INSTALL BANNER (iOS) ── */
+.install-banner{position:fixed;top:max(env(safe-area-inset-top),16px);left:50%;transform:translateX(-50%);width:calc(100% - 24px);max-width:456px;background:linear-gradient(135deg,#1A1A1A,#0F0F0F);border:1px solid var(--a);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:12px;z-index:200;box-shadow:0 4px 24px rgba(0,255,0,.2),0 0 0 1px rgba(0,255,0,.3);animation:slideDown .4s ease-out}
+@keyframes slideDown{from{transform:translateX(-50%) translateY(-100%);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
+.ib-icon{font-size:24px;flex-shrink:0}
+.ib-content{flex:1;min-width:0}
+.ib-title{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:.04em;color:var(--a)}
+.ib-desc{font-size:11px;color:var(--text-soft);margin-top:2px;line-height:1.3}
+.ib-action{background:var(--a);color:#000;border:none;border-radius:8px;font-family:'Inter',sans-serif;font-size:11px;font-weight:700;padding:8px 12px;cursor:pointer;flex-shrink:0}
+.ib-action:active{transform:scale(.94)}
+.ib-close{background:transparent;border:none;color:var(--m);font-size:16px;cursor:pointer;padding:4px 8px;flex-shrink:0}
+
+/* Install modal */
+.install-step-list{display:flex;flex-direction:column;gap:14px;margin-top:8px}
+.install-step{display:flex;gap:12px;align-items:flex-start;background:var(--bg);border-radius:10px;padding:12px}
+.is-num{width:28px;height:28px;border-radius:50%;background:var(--a);color:#000;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:14px;font-weight:700;flex-shrink:0}
+.is-content{flex:1;min-width:0}
+.is-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:3px}
+.is-desc{font-size:11px;color:var(--m-light);line-height:1.4}
+.is-url{font-size:11px;color:var(--a);background:#000;padding:8px 10px;border-radius:6px;margin-top:8px;word-break:break-all;font-family:monospace}
+.copy-btn{background:var(--a-dim);border:1px solid var(--a);border-radius:8px;color:var(--a);font-family:'Inter',sans-serif;font-size:11px;font-weight:600;padding:8px 12px;cursor:pointer;margin-top:8px;width:100%}
+.copy-btn:active{transform:scale(.96)}
+
+/* Ajustar conteúdo quando banner está visível */
+body:has(.install-banner) .home-container,
+body:has(.install-banner) .workout-screen,
+body:has(.install-banner) .history-screen,
+body:has(.install-banner) .progress-screen,
+body:has(.install-banner) .profile-screen,
+body:has(.install-banner) .settings-screen{padding-top:80px}
+body:has(.install-banner) .home-header,
+body:has(.install-banner) .hist-header,
+body:has(.install-banner) .workout-header{padding-top:16px}
 </style>
 </head>
 <body>
@@ -407,5 +463,6 @@ select.form-input{cursor:pointer;background-image:url("data:image/svg+xml;utf8,<
 <script src="profile.js"></script>
 <script src="settings.js"></script>
 <script src="app.js"></script>
+<script src="install.js"></script>
 </body>
 </html>
