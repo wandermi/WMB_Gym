@@ -405,6 +405,9 @@ function vWorkoutExecution() {
       
       setsTableHtml = `
         <div class="ex-body">
+          <button class="video-btn-ex" data-act="openvideo" data-id="${ex.id}">
+            🎥 Ver demonstração
+          </button>
           ${ex.instructions ? `<div class="ex-instructions"><div class="ex-inst-label">📋 Instruções</div><div class="ex-inst-text">${escapeHTML(ex.instructions).replace(/\n/g, "<br>")}</div></div>` : ""}
           ${ex.method ? `<div class="ex-method">${methodBadge(ex.method)}</div>` : ""}
           ${prev ? `<div class="ex-previous">Última vez: <strong>${prev.weight}kg × ${prev.reps || "-"} reps</strong></div>` : ""}
@@ -516,4 +519,88 @@ function methodBadge(m) {
     three_seven: "🎯 3/7: 7→6→5→4→3 reps com 15s de pausa entre cada série"
   };
   return `<div class="method-info">${escapeHTML(descs[m] || m)}</div>`;
+}
+
+// ===========================================
+// VIDEO MODAL - Demonstração do exercício
+// ===========================================
+
+function openVideoModal(exerciseId) {
+  const ex = WO.workout?.exercises?.find(e => e.id === exerciseId);
+  if (!ex) return;
+  WO.videoModal = ex;
+  render();
+}
+
+function closeVideoModal() {
+  WO.videoModal = null;
+  render();
+}
+
+function vVideoModal() {
+  if (!WO.videoModal) return "";
+  const ex = WO.videoModal;
+  
+  // Buscar URL customizada salva (se houver)
+  const customUrl = ex.video_url || null;
+  
+  // Query para YouTube (em português + exercício)
+  const searchQuery = encodeURIComponent(`${ex.name} como fazer correto musculação`);
+  const youtubeSearchUrl = `https://www.youtube.com/results?search_query=${searchQuery}`;
+  const youtubeEmbedUrl = `https://www.youtube.com/embed?listType=search&list=${searchQuery}`;
+  
+  return `
+    <div class="modal-overlay" data-act="closevideo">
+      <div class="modal-sheet video-modal" onclick="event.stopPropagation()">
+        <div class="modal-handle"></div>
+        <div class="video-header">
+          <div class="video-title">${escapeHTML(ex.name)}</div>
+          <button class="header-btn" data-act="closevideo">✕</button>
+        </div>
+        
+        ${customUrl ? `
+          <div class="video-container">
+            ${customUrl.includes("youtube.com") || customUrl.includes("youtu.be") ? `
+              <iframe src="${getYouTubeEmbed(customUrl)}" frameborder="0" allowfullscreen></iframe>
+            ` : `
+              <img src="${customUrl}" alt="${escapeHTML(ex.name)}" class="video-image">
+            `}
+          </div>
+        ` : `
+          <div class="video-search-section">
+            <div class="vs-icon">🎥</div>
+            <div class="vs-title">Buscar Demonstração</div>
+            <div class="vs-desc">Clique no botão para ver vídeos deste exercício no YouTube</div>
+            <a href="${youtubeSearchUrl}" target="_blank" rel="noopener" class="auth-btn youtube-btn">
+              ▶️ Abrir no YouTube
+            </a>
+          </div>
+        `}
+        
+        ${ex.instructions ? `
+          <div class="ex-instructions" style="margin-top:14px">
+            <div class="ex-inst-label">📋 Instruções</div>
+            <div class="ex-inst-text">${escapeHTML(ex.instructions).replace(/\n/g, "<br>")}</div>
+          </div>
+        ` : ""}
+        
+        ${ex.muscles_primary && ex.muscles_primary.length > 0 ? `
+          <div class="muscle-tags">
+            <div class="ex-inst-label">💪 Músculos trabalhados</div>
+            <div class="mt-list">
+              ${ex.muscles_primary.map(m => `<span class="mt-primary">${escapeHTML(m)}</span>`).join("")}
+              ${(ex.muscles_secondary || []).map(m => `<span class="mt-secondary">${escapeHTML(m)}</span>`).join("")}
+            </div>
+          </div>
+        ` : ""}
+      </div>
+    </div>
+  `;
+}
+
+function getYouTubeEmbed(url) {
+  // Extrai video ID de várias formas de URL do YouTube
+  const match = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([\w-]+)/);
+  if (match) return `https://www.youtube.com/embed/${match[1]}`;
+  return url;
 }

@@ -175,6 +175,8 @@ async function loadUserData() {
     await loadWorkouts();
   }
   
+  await loadSchedule(); // Para mostrar treino do dia na home
+  
   APP.view = "home";
   APP.loading = false;
   render();
@@ -220,6 +222,35 @@ function vHome() {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
   
+  // Buscar treino de hoje (se rotação configurada)
+  const today = new Date().getDay(); // 0=Dom, 6=Sáb
+  const todayScheduled = SETT.schedule?.[today];
+  let todayWorkout = null;
+  let todayIsRest = false;
+  if (todayScheduled === "rest") todayIsRest = true;
+  else if (todayScheduled) todayWorkout = APP.workouts.find(w => w.id === todayScheduled);
+  
+  const todayCard = todayIsRest ? `
+    <div class="today-card rest-card">
+      <div class="tc-icon">🛌</div>
+      <div class="tc-info">
+        <div class="tc-label">HOJE</div>
+        <div class="tc-name">Dia de Descanso</div>
+        <div class="tc-sub">Aproveite pra recuperar</div>
+      </div>
+    </div>
+  ` : todayWorkout ? `
+    <div class="today-card" data-act="openworkout" data-id="${todayWorkout.id}" style="--ex-color:${todayWorkout.color}">
+      <div class="tc-letter" style="background:${todayWorkout.color}22;color:${todayWorkout.color};border-color:${todayWorkout.color}66">${todayWorkout.letter || "?"}</div>
+      <div class="tc-info">
+        <div class="tc-label">SEU TREINO DE HOJE</div>
+        <div class="tc-name">${escapeHTML(todayWorkout.name)}</div>
+        <div class="tc-sub">${escapeHTML(todayWorkout.sub || "")}</div>
+      </div>
+      <div class="tc-action">▶</div>
+    </div>
+  ` : "";
+  
   const workoutCards = APP.workouts.map(w => {
     const exCount = w.exercises?.length || 0;
     const setsCount = w.exercises?.reduce((a, e) => a + (e.sets || 0), 0) || 0;
@@ -253,6 +284,8 @@ function vHome() {
         <button class="header-btn" data-act="menu">⋮</button>
       </header>
       
+      ${todayCard}
+      
       <div class="protocol-badge">
         <div class="pb-icon">🏆</div>
         <div>
@@ -279,15 +312,13 @@ function vHome() {
             <div class="qc-icon">📈</div>
             <div class="qc-label">Progressão</div>
           </div>
-          <div class="quick-card disabled">
-            <div class="qc-icon">🎥</div>
-            <div class="qc-label">Vídeos</div>
-            <div class="qc-tag">Em breve</div>
+          <div class="quick-card" data-act="goto" data-view="profile">
+            <div class="qc-icon">👤</div>
+            <div class="qc-label">Perfil</div>
           </div>
-          <div class="quick-card disabled">
-            <div class="qc-icon">📅</div>
-            <div class="qc-label">Rotação</div>
-            <div class="qc-tag">Em breve</div>
+          <div class="quick-card" data-act="goto" data-view="settings">
+            <div class="qc-icon">⚙️</div>
+            <div class="qc-label">Config</div>
           </div>
         </div>
       </section>
@@ -336,6 +367,8 @@ function render() {
     case "workout": html = vWorkoutExecution(); break;
     case "history": html = vHistory(); break;
     case "progress": html = vProgress(); break;
+    case "profile": html = vProfile(); break;
+    case "settings": html = vSettings(); break;
     default: html = vLoading();
   }
   
@@ -343,6 +376,11 @@ function render() {
   
   if (APP.modal === "menu") {
     app.insertAdjacentHTML("beforeend", vMenu());
+  }
+  
+  // Video modal
+  if (WO.videoModal && APP.view === "workout") {
+    app.insertAdjacentHTML("beforeend", vVideoModal());
   }
   
   // Re-render rest timer overlay se ativo
@@ -412,12 +450,37 @@ document.addEventListener("click", async (e) => {
       APP.view = "history";
       render();
       await loadHistory();
-    } else if (view === "profile" || view === "settings") {
-      showToast("Em construção (Fase 5)", "info");
+    } else if (view === "profile") {
+      APP.view = "profile";
+      PROF.editing = false;
+      render();
+      await loadProfileData();
+      render();
+    } else if (view === "settings") {
+      APP.view = "settings";
+      render();
+      await loadSchedule();
       render();
     } else {
       render();
     }
+  } else if (act === "editprofile") {
+    PROF.form = { ...(APP.profile || {}) };
+    PROF.editing = true;
+    render();
+  } else if (act === "cancelprofileedit") {
+    PROF.editing = false;
+    render();
+  } else if (act === "saveprofile") {
+    await saveProfile();
+  } else if (act === "clearprogress") {
+    await clearAllProgress();
+  } else if (act === "resetworkouts") {
+    await resetWorkouts();
+  } else if (act === "openvideo") {
+    openVideoModal(el.dataset.id);
+  } else if (act === "closevideo") {
+    closeVideoModal();
   } else if (act === "gohome") {
     APP.view = "home";
     HIST.selectedSession = null;
@@ -495,6 +558,10 @@ document.addEventListener("change", async (e) => {
   if (t.dataset.act === "selectexercise") {
     const id = t.value;
     if (id) await loadExerciseProgress(id);
+  } else if (t.dataset.act === "setday") {
+    const day = parseInt(t.dataset.day);
+    const value = t.value || null;
+    await saveDayWorkout(day, value);
   }
 });
 
