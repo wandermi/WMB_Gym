@@ -408,7 +408,15 @@ function vWorkoutExecution() {
           <button class="video-btn-ex" data-act="openvideo" data-id="${ex.id}">
             🎥 Ver demonstração
           </button>
-          ${ex.instructions ? `<div class="ex-instructions"><div class="ex-inst-label">📋 Instruções</div><div class="ex-inst-text">${escapeHTML(ex.instructions).replace(/\n/g, "<br>")}</div></div>` : ""}
+          ${ex.steps && ex.steps.length > 0 ? `
+            <div class="how-to-compact">
+              <div class="ex-inst-label">🎯 Como fazer</div>
+              <div class="how-to-list">
+                ${ex.steps.map((step, i) => `<div class="hts-compact">${i + 1}. ${escapeHTML(step)}</div>`).join("")}
+              </div>
+            </div>
+          ` : ""}
+          ${ex.instructions ? `<div class="ex-instructions"><div class="ex-inst-label">📋 Séries e métodos</div><div class="ex-inst-text">${escapeHTML(ex.instructions).replace(/\n/g, "<br>")}</div></div>` : ""}
           ${ex.method ? `<div class="ex-method">${methodBadge(ex.method)}</div>` : ""}
           ${prev ? `<div class="ex-previous">Última vez: <strong>${prev.weight}kg × ${prev.reps || "-"} reps</strong></div>` : ""}
           <div class="sets-table">
@@ -577,9 +585,23 @@ function vVideoModal() {
           </div>
         `}
         
+        ${ex.steps && ex.steps.length > 0 ? `
+          <div class="how-to-section">
+            <div class="ex-inst-label">🎯 Como executar</div>
+            <div class="how-to-steps">
+              ${ex.steps.map((step, i) => `
+                <div class="how-to-step">
+                  <div class="hts-num">${i + 1}</div>
+                  <div class="hts-text">${escapeHTML(step)}</div>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        ` : ""}
+        
         ${ex.instructions ? `
           <div class="ex-instructions" style="margin-top:14px">
-            <div class="ex-inst-label">📋 Instruções</div>
+            <div class="ex-inst-label">📋 Séries e métodos</div>
             <div class="ex-inst-text">${escapeHTML(ex.instructions).replace(/\n/g, "<br>")}</div>
           </div>
         ` : ""}

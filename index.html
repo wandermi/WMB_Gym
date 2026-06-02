@@ -371,6 +371,18 @@ select.form-input{cursor:pointer;background-image:url("data:image/svg+xml;utf8,<
 .mt-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .mt-primary{background:var(--a-dim);color:var(--a);border:1px solid var(--a);border-radius:6px;padding:4px 10px;font-size:11px;font-weight:600}
 .mt-secondary{background:var(--bg);color:var(--m-light);border:1px solid var(--b);border-radius:6px;padding:4px 10px;font-size:11px;font-weight:500}
+
+/* ── HOW-TO STEPS (no modal) ── */
+.how-to-section{background:var(--bg);border-radius:10px;padding:12px;margin-top:14px;border-left:3px solid #4A9EFF}
+.how-to-steps{display:flex;flex-direction:column;gap:10px;margin-top:8px}
+.how-to-step{display:flex;gap:10px;align-items:flex-start}
+.hts-num{width:24px;height:24px;border-radius:50%;background:#4A9EFF;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.hts-text{font-size:13px;line-height:1.5;color:var(--text-soft);padding-top:3px}
+
+/* ── HOW-TO COMPACT (no card expandido) ── */
+.how-to-compact{background:var(--bg);border-radius:8px;padding:10px 12px;margin-bottom:10px;border-left:2px solid #4A9EFF}
+.how-to-list{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.hts-compact{font-size:12px;line-height:1.5;color:var(--text-soft)}
 </style>
 </head>
 <body>
@@ -389,6 +401,7 @@ select.form-input{cursor:pointer;background-image:url("data:image/svg+xml;utf8,<
 <!-- App scripts (ordem importa!) -->
 <script src="config.js"></script>
 <script src="seed.js"></script>
+<script src="exercise_steps.js"></script>
 <script src="workout.js"></script>
 <script src="history.js"></script>
 <script src="profile.js"></script>

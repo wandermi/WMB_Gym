@@ -175,6 +175,9 @@ async function loadUserData() {
     await loadWorkouts();
   }
   
+  // Atualizar exercícios sem passo a passo (executa silenciosamente)
+  await updateExerciseSteps();
+  
   await loadSchedule(); // Para mostrar treino do dia na home
   
   APP.view = "home";
