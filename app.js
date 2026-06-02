@@ -269,12 +269,26 @@ function vHome() {
       </section>
       
       <section class="section">
-        <h2 class="section-title">Em breve</h2>
-        <div class="coming-soon">
-          <div class="cs-card">📊 Histórico completo</div>
-          <div class="cs-card">🎥 Vídeos dos exercícios</div>
-          <div class="cs-card">📈 Gráficos de evolução</div>
-          <div class="cs-card">📅 Rotação semanal</div>
+        <h2 class="section-title">Acesso Rápido</h2>
+        <div class="quick-grid">
+          <div class="quick-card" data-act="goto" data-view="history">
+            <div class="qc-icon">📊</div>
+            <div class="qc-label">Histórico</div>
+          </div>
+          <div class="quick-card" data-act="goprogress">
+            <div class="qc-icon">📈</div>
+            <div class="qc-label">Progressão</div>
+          </div>
+          <div class="quick-card disabled">
+            <div class="qc-icon">🎥</div>
+            <div class="qc-label">Vídeos</div>
+            <div class="qc-tag">Em breve</div>
+          </div>
+          <div class="quick-card disabled">
+            <div class="qc-icon">📅</div>
+            <div class="qc-label">Rotação</div>
+            <div class="qc-tag">Em breve</div>
+          </div>
         </div>
       </section>
     </div>
@@ -288,6 +302,9 @@ function vMenu() {
         <div class="modal-handle"></div>
         <div class="modal-title">Menu</div>
         <div class="menu-list">
+          <button class="menu-item" data-act="goto" data-view="history">
+            <span>📊</span> Histórico de Treinos
+          </button>
           <button class="menu-item" data-act="goto" data-view="profile">
             <span>👤</span> Meu Perfil
           </button>
@@ -317,6 +334,8 @@ function render() {
     case "auth": html = vAuth(); break;
     case "home": html = vHome(); break;
     case "workout": html = vWorkoutExecution(); break;
+    case "history": html = vHistory(); break;
+    case "progress": html = vProgress(); break;
     default: html = vLoading();
   }
   
@@ -329,6 +348,11 @@ function render() {
   // Re-render rest timer overlay se ativo
   if (WO.restTimer && APP.view === "workout") {
     updateRestTimerUI();
+  }
+  
+  // Re-render chart se estiver na tela de progresso
+  if (APP.view === "progress" && HIST.progressExercise && HIST.progressData.length > 0) {
+    setTimeout(renderChart, 50);
   }
 }
 
@@ -382,7 +406,51 @@ document.addEventListener("click", async (e) => {
     }
     await finishWorkout();
   } else if (act === "goto") {
-    showToast("Em construção", "info");
+    const view = el.dataset.view;
+    APP.modal = null;
+    if (view === "history") {
+      APP.view = "history";
+      render();
+      await loadHistory();
+    } else if (view === "profile" || view === "settings") {
+      showToast("Em construção (Fase 5)", "info");
+      render();
+    } else {
+      render();
+    }
+  } else if (act === "gohome") {
+    APP.view = "home";
+    HIST.selectedSession = null;
+    HIST.sessionDetails = null;
+    render();
+  } else if (act === "gohistory") {
+    APP.view = "history";
+    if (HIST.chartInstance) { HIST.chartInstance.destroy(); HIST.chartInstance = null; }
+    render();
+  } else if (act === "goprogress") {
+    APP.view = "progress";
+    HIST.progressExercise = null;
+    HIST.progressData = [];
+    render();
+    await loadExerciseList();
+    render();
+  } else if (act === "setfilter") {
+    HIST.filter = el.dataset.id;
+    HIST.selectedSession = null;
+    HIST.sessionDetails = null;
+    render();
+  } else if (act === "togglesession") {
+    const id = el.dataset.id;
+    if (HIST.selectedSession === id) {
+      HIST.selectedSession = null;
+      HIST.sessionDetails = null;
+      render();
+    } else {
+      HIST.selectedSession = id;
+      HIST.sessionDetails = null;
+      render();
+      await loadSessionDetails(id);
+    }
   }
 });
 
@@ -418,6 +486,15 @@ document.addEventListener("input", (e) => {
       if (isWeight) sets[idx].weight = t.value;
       else sets[idx].reps = t.value;
     }
+  }
+});
+
+// Handler para selects (exercise picker)
+document.addEventListener("change", async (e) => {
+  const t = e.target;
+  if (t.dataset.act === "selectexercise") {
+    const id = t.value;
+    if (id) await loadExerciseProgress(id);
   }
 });
 
