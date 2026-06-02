@@ -316,6 +316,7 @@ function render() {
     case "loading": html = vLoading(); break;
     case "auth": html = vAuth(); break;
     case "home": html = vHome(); break;
+    case "workout": html = vWorkoutExecution(); break;
     default: html = vLoading();
   }
   
@@ -323,6 +324,11 @@ function render() {
   
   if (APP.modal === "menu") {
     app.insertAdjacentHTML("beforeend", vMenu());
+  }
+  
+  // Re-render rest timer overlay se ativo
+  if (WO.restTimer && APP.view === "workout") {
+    updateRestTimerUI();
   }
 }
 
@@ -348,7 +354,33 @@ document.addEventListener("click", async (e) => {
   } else if (act === "logout") {
     if (confirm("Tem certeza que deseja sair?")) await signOut();
   } else if (act === "openworkout") {
-    showToast("Tela de treino em construção (Fase 3)", "info");
+    await startWorkout(el.dataset.id);
+  } else if (act === "toggleex") {
+    const id = el.dataset.id;
+    if (WO.expanded.has(id)) WO.expanded.delete(id);
+    else WO.expanded.add(id);
+    render();
+  } else if (act === "togglewarmup") {
+    WO.warmupExpanded = !WO.warmupExpanded;
+    render();
+  } else if (act === "skipwarmup") {
+    WO.warmupSkipped = true;
+    render();
+  } else if (act === "toggleset") {
+    await toggleSetCompleted(el.dataset.eid, parseInt(el.dataset.idx));
+  } else if (act === "skiprest") {
+    skipRestTimer();
+  } else if (act === "addrest") {
+    addRestTime(parseInt(el.dataset.sec));
+  } else if (act === "cancelworkout") {
+    await cancelWorkout();
+  } else if (act === "finishworkout") {
+    const totalSets = Object.values(WO.setLogs).flat().length;
+    const doneSets = Object.values(WO.setLogs).flat().filter(s => s.completed).length;
+    if (doneSets < totalSets) {
+      if (!confirm(`Você completou ${doneSets} de ${totalSets} séries. Finalizar mesmo assim?`)) return;
+    }
+    await finishWorkout();
   } else if (act === "goto") {
     showToast("Em construção", "info");
   }
@@ -371,6 +403,21 @@ document.addEventListener("submit", async (e) => {
     const password = $("#auth-password").value;
     if (password.length < 6) { showToast("Senha precisa ter no mínimo 6 caracteres", "error"); return; }
     await signUp(email, password, name);
+  }
+});
+
+// Sincronizar inputs de carga/reps em tempo real
+document.addEventListener("input", (e) => {
+  const t = e.target;
+  if (t.dataset.w || t.dataset.r) {
+    const isWeight = !!t.dataset.w;
+    const key = isWeight ? t.dataset.w : t.dataset.r;
+    const [exId, idx] = key.split("-");
+    const sets = WO.setLogs[exId];
+    if (sets && sets[idx]) {
+      if (isWeight) sets[idx].weight = t.value;
+      else sets[idx].reps = t.value;
+    }
   }
 });
 
