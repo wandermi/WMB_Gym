@@ -109,10 +109,20 @@ async function loadWorkouts() {
   }
 }
 
-async function seedInitialWorkouts() {
-  showToast("Importando seu protocolo de treino...", "info");
-  for (const wkData of WORKOUTS_SEED) {
-    const { exercises, ...workout } = wkData;
+// NOVA FUNÇÃO: Aplica um protocolo do catálogo preservando o histórico
+async function applyProtocol(protocolId) {
+  APP.loading = true;
+  render();
+  
+  const protocol = PROTOCOLS_CATALOG[protocolId];
+  showToast(`A importar ${protocol.name}...`, "info");
+  
+  // Apaga apenas os treinos e agenda antigos do usuário (O histórico set_logs fica seguro!)
+  await sb.from("schedule").delete().eq("user_id", APP.user.id);
+  await sb.from("workouts").delete().eq("user_id", APP.user.id);
+
+  // Insere os novos
+  for (const workout of protocol.workouts) {
     const { data: newWorkout, error: wkError } = await sb.from("workouts")
       .insert({
         user_id: APP.user.id,
@@ -122,44 +132,45 @@ async function seedInitialWorkouts() {
         icon: workout.icon,
         position: workout.position,
         letter: workout.letter,
-        protocol_name: PROTOCOL_DATA.name,
-        goal: PROTOCOL_DATA.goal
-      })
-      .select()
-      .single();
+        protocol_name: protocol.name,
+        goal: protocol.goal
+      }).select().single();
     
-    if (wkError) { console.error("Erro workout:", wkError); continue; }
+    if (wkError) continue;
     
-    const exercisesToInsert = exercises.map(ex => ({
+    const exercisesToInsert = workout.exercises.map(ex => ({
       workout_id: newWorkout.id,
       name: ex.name,
       sets: ex.sets,
       reps: ex.reps,
       rest: ex.rest,
-      tip: ex.tip || null,
       instructions: ex.instructions || null,
       method: ex.method || null,
       is_warmup: ex.is_warmup || false,
       is_mobility: ex.is_mobility || false,
-      duration_sec: ex.duration_sec || null,
-      muscles_primary: ex.muscles_primary || [],
-      muscles_secondary: ex.muscles_secondary || [],
       steps: ex.steps || [],
       position: ex.position
     }));
     
-    const { error: exError } = await sb.from("exercises").insert(exercisesToInsert);
-    if (exError) console.error("Erro exercises:", exError);
+    await sb.from("exercises").insert(exercisesToInsert);
   }
   
+  // Atualiza as notas do protocolo
+  await sb.from("protocol_notes").delete().eq("user_id", APP.user.id);
   await sb.from("protocol_notes").insert({
     user_id: APP.user.id,
-    protocol_name: PROTOCOL_DATA.name,
-    cardio_instructions: PROTOCOL_DATA.cardio,
-    general_notes: PROTOCOL_DATA.notes
+    protocol_name: protocol.name,
+    cardio_instructions: protocol.cardio,
+    general_notes: protocol.notes
   });
   
-  showToast("Protocolo importado com sucesso!", "success");
+  await loadWorkouts();
+  SETT.schedule = {}; 
+  
+  APP.loading = false;
+  APP.view = "home";
+  showToast("Treino montado com sucesso!", "success");
+  render();
 }
 
 async function loadUserData() {
@@ -170,19 +181,19 @@ async function loadUserData() {
   await loadProfile();
   await loadWorkouts();
   
+  await updateExerciseSteps();
+  await loadSchedule(); 
+  restoreRestTimer();   
+  
+  APP.loading = false;
+
+  // SE NÃO TEM TREINO, VAI PARA O QUESTIONÁRIO
   if (APP.workouts.length === 0) {
-    await seedInitialWorkouts();
-    await loadWorkouts();
+    APP.view = "onboarding";
+  } else {
+    APP.view = "home";
   }
   
-  // Atualizar exercícios sem passo a passo (executa silenciosamente)
-  await updateExerciseSteps();
-  
-  await loadSchedule(); // Para mostrar treino do dia na home
-  restoreRestTimer();   // Restaura o timer de descanso persistente
-  
-  APP.view = "home";
-  APP.loading = false;
   render();
 }
 
@@ -217,6 +228,79 @@ function vAuth() {
   `;
 }
 
+// TELA: Onboarding e Seleção de Protocolos
+function vOnboarding() {
+  const hasWorkouts = APP.workouts.length > 0;
+  return `
+    <div class="auth-container" style="justify-content: flex-start; padding-top: ${hasWorkouts ? '20px' : '40px'};">
+      ${hasWorkouts ? `
+      <header class="hist-header" style="width: 100%; border: none; padding: 0 0 20px 0;">
+        <button class="wh-back" data-act="goto" data-view="settings">←</button>
+      </header>
+      ` : ''}
+      <div class="auth-logo" style="margin-bottom: 30px;">
+        <div class="logo-text" style="font-size: 48px;">${hasWorkouts ? 'MUDAR TREINO' : 'BEM-VINDO'}</div>
+        <div class="logo-sub">${hasWorkouts ? 'Escolha o seu novo protocolo' : 'Vamos configurar o seu treino'}</div>
+      </div>
+      
+      <div class="auth-card" style="width: 100%;">
+        <form class="auth-form" data-act="submitonboarding">
+          <div style="margin-bottom: 16px;">
+            <label class="form-label" style="color: var(--a);">QUAL O SEU NÍVEL DE EXPERIÊNCIA?</label>
+            <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;">
+              
+              <label style="background: var(--bg); border: 1px solid var(--b); border-radius: 10px; padding: 14px; display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                <input type="radio" name="level" value="protocolo_1" required style="accent-color: var(--a); transform: scale(1.2);">
+                <div>
+                  <div style="font-weight: bold; color: var(--text);">Iniciante (Prot. 1)</div>
+                  <div style="font-size: 11px; color: var(--m);">Estou começando agora. Foco em aprender os movimentos e usar máquinas.</div>
+                </div>
+              </label>
+
+              <label style="background: var(--bg); border: 1px solid var(--b); border-radius: 10px; padding: 14px; display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                <input type="radio" name="level" value="protocolo_2" style="accent-color: var(--a); transform: scale(1.2);">
+                <div>
+                  <div style="font-weight: bold; color: var(--text);">Intermediário (Prot. 2)</div>
+                  <div style="font-size: 11px; color: var(--m);">Já treino há algum tempo. Quero focar em hipertrofia e pesos livres.</div>
+                </div>
+              </label>
+
+              <label style="background: var(--bg); border: 1px solid var(--b); border-radius: 10px; padding: 14px; display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                <input type="radio" name="level" value="protocolo_3" style="accent-color: var(--a); transform: scale(1.2);">
+                <div>
+                  <div style="font-weight: bold; color: var(--text);">Intermediário II (Prot. 3)</div>
+                  <div style="font-size: 11px; color: var(--m);">Volume maior. Treino ABCD.</div>
+                </div>
+              </label>
+
+              <label style="background: var(--bg); border: 1px solid var(--b); border-radius: 10px; padding: 14px; display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                <input type="radio" name="level" value="protocolo_4" style="accent-color: var(--a); transform: scale(1.2);">
+                <div>
+                  <div style="font-weight: bold; color: var(--text);">Avançado (Prot. 4)</div>
+                  <div style="font-size: 11px; color: var(--m);">Intensidade máxima. Treino ABCDE.</div>
+                </div>
+              </label>
+
+              <label style="background: var(--bg); border: 1px solid var(--b); border-radius: 10px; padding: 14px; display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                <input type="radio" name="level" value="protocolo_5" style="accent-color: var(--a); transform: scale(1.2);">
+                <div>
+                  <div style="font-weight: bold; color: var(--text);">Avançado Especialista (Prot. 5)</div>
+                  <div style="font-size: 11px; color: var(--m);">Detalhamento. Treino ABCDEF.</div>
+                </div>
+              </label>
+              
+            </div>
+          </div>
+          
+          <button type="submit" class="auth-btn" ${APP.loading ? "disabled" : ""}>
+            ${APP.loading ? "A gerar treinos..." : "Montar Meu Treino"}
+          </button>
+        </form>
+      </div>
+    </div>
+  `;
+}
+
 function vLoading() {
   return `<div class="loading-screen"><div class="spinner"></div><div class="loading-text">Carregando...</div></div>`;
 }
@@ -226,8 +310,7 @@ function vHome() {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
   
-  // Buscar treino de hoje (se rotação configurada)
-  const today = new Date().getDay(); // 0=Dom, 6=Sáb
+  const today = new Date().getDay(); 
   const todayScheduled = SETT.schedule?.[today];
   let todayWorkout = null;
   let todayIsRest = false;
@@ -277,6 +360,8 @@ function vHome() {
       </div>
     `;
   }).join("");
+
+  const currentProtocol = APP.workouts[0]?.protocol_name || "Treino Personalizado";
   
   return `
     <div class="home-container">
@@ -293,8 +378,8 @@ function vHome() {
       <div class="protocol-badge">
         <div class="pb-icon">🏆</div>
         <div>
-          <div class="pb-name">PROTOCOLO 2</div>
-          <div class="pb-meta">Hipertrofia • Intermediário</div>
+          <div class="pb-name">${escapeHTML(currentProtocol).toUpperCase()}</div>
+          <div class="pb-meta">Protocolo Ativo</div>
         </div>
       </div>
       
@@ -367,6 +452,7 @@ function render() {
   switch (APP.view) {
     case "loading": html = vLoading(); break;
     case "auth": html = vAuth(); break;
+    case "onboarding": html = vOnboarding(); break; 
     case "home": html = vHome(); break;
     case "workout": html = vWorkoutExecution(); break;
     case "summary": html = vSummary(); break; 
@@ -383,17 +469,14 @@ function render() {
     app.insertAdjacentHTML("beforeend", vMenu());
   }
   
-  // Video modal
   if (WO.videoModal && APP.view === "workout") {
     app.insertAdjacentHTML("beforeend", vVideoModal());
   }
   
-  // Re-render rest timer overlay se ativo
   if (WO.restTimer && APP.view === "workout") {
     updateRestTimerUI();
   }
   
-  // Re-render chart se estiver na tela de progresso
   if (APP.view === "progress" && HIST.progressExercise && HIST.progressData.length > 0) {
     setTimeout(renderChart, 50);
   }
@@ -466,6 +549,9 @@ document.addEventListener("click", async (e) => {
       render();
       await loadSchedule();
       render();
+    } else if (view === "onboarding") {
+      APP.view = "onboarding";
+      render();
     } else {
       render();
     }
@@ -480,8 +566,6 @@ document.addEventListener("click", async (e) => {
     await saveProfile();
   } else if (act === "clearprogress") {
     await clearAllProgress();
-  } else if (act === "resetworkouts") {
-    await resetWorkouts();
   } else if (act === "openvideo") {
     openVideoModal(el.dataset.id);
   } else if (act === "closevideo") {
@@ -539,6 +623,10 @@ document.addEventListener("submit", async (e) => {
     const password = $("#auth-password").value;
     if (password.length < 6) { showToast("Senha precisa ter no mínimo 6 caracteres", "error"); return; }
     await signUp(email, password, name);
+  } else if (act === "submitonboarding") {
+    const selectedLevel = document.querySelector('input[name="level"]:checked');
+    if(!selectedLevel) { showToast("Selecione um protocolo!", "warn"); return; }
+    await applyProtocol(selectedLevel.value);
   }
 });
 
@@ -557,7 +645,6 @@ document.addEventListener("input", (e) => {
   }
 });
 
-// Handler para selects (exercise picker)
 document.addEventListener("change", async (e) => {
   const t = e.target;
   if (t.dataset.act === "selectexercise") {

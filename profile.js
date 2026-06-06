@@ -9,7 +9,7 @@ const PROF = {
 };
 
 async function loadProfileData() {
-  await loadProfile(); // do app.js
+  await loadProfile(); 
   PROF.form = { ...(APP.profile || {}) };
 }
 
@@ -18,11 +18,9 @@ async function saveProfile() {
   PROF.loading = true;
   render();
   
-  // Pegar valores dos inputs
   const f = {
     name: $("#prof-name")?.value?.trim() || null,
     age: parseInt($("#prof-age")?.value) || null,
-    // Suporte para vírgula no peso
     weight: parseFloat($("#prof-weight")?.value?.replace(',', '.')) || null,
     height: parseInt($("#prof-height")?.value) || null,
     goal: $("#prof-goal")?.value || null,
@@ -114,7 +112,6 @@ function vProfile() {
     `;
   }
   
-  // Modo edição
   return `
     <div class="profile-screen">
       <header class="hist-header">

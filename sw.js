@@ -15,10 +15,9 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   if (!e.request.url.startsWith('http')) return;
-  // Não cachear chamadas Supabase ou CDN externa
   const url = new URL(e.request.url);
   if (url.hostname.includes('supabase.co') || url.hostname.includes('jsdelivr.net') || url.hostname.includes('googleapis.com') || url.hostname.includes('gstatic.com')) {
-    return; // deixa o browser cuidar normalmente
+    return;
   }
   e.respondWith(
     caches.match(e.request).then(r => r || fetch(e.request).then(res => {

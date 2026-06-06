@@ -5,7 +5,7 @@
 const INSTALL = {
   isIOS: /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream,
   isStandalone: window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true,
-  isSafari: false, // determinado abaixo
+  isSafari: false, 
   isChrome: false,
   isAndroidPromptReady: false,
   dismissedKey: "wmb_install_dismissed_v2"
@@ -19,15 +19,11 @@ window.addEventListener('beforeinstallprompt', (e) => {
   renderInstallBanner();
 });
 
-// Detectar navegador
 const ua = navigator.userAgent.toLowerCase();
-INSTALL.isChrome = /crios/i.test(ua); // CriOS = Chrome iOS
+INSTALL.isChrome = /crios/i.test(ua); 
 INSTALL.isSafari = !INSTALL.isChrome && /safari/.test(ua) && !/chrome/.test(ua);
 
-// No iOS, todos navegadores não-Safari (Chrome, Firefox, Edge) usam WebKit
-// Mas só Safari pode instalar PWA
 if (INSTALL.isIOS && !INSTALL.isStandalone) {
-  // Verificar se é Safari nativo ou outro navegador
   const isAnyWebKit = /AppleWebKit/.test(navigator.userAgent);
   const isChromeIOS = /CriOS/.test(navigator.userAgent);
   const isFirefoxIOS = /FxiOS/.test(navigator.userAgent);
@@ -38,9 +34,7 @@ if (INSTALL.isIOS && !INSTALL.isStandalone) {
 }
 
 function shouldShowInstallBanner() {
-  // Não mostrar se já instalado
   if (INSTALL.isStandalone) return false;
-  // Não mostrar se dispensou recentemente (24h)
   const dismissed = localStorage.getItem(INSTALL.dismissedKey);
   if (dismissed) {
     const time = parseInt(dismissed);
@@ -59,7 +53,7 @@ function renderInstallBanner() {
   document.getElementById("install-banner")?.remove();
   
   if (!shouldShowInstallBanner()) return;
-  if (!INSTALL.isIOS && !INSTALL.isAndroidPromptReady) return; // Só mostra no iOS ou se o Android estiver pronto
+  if (!INSTALL.isIOS && !INSTALL.isAndroidPromptReady) return; 
   
   const banner = document.createElement("div");
   banner.id = "install-banner";
@@ -76,7 +70,6 @@ function renderInstallBanner() {
       <button class="ib-close" data-act="dismissinstall">✕</button>
     `;
   } else if (INSTALL.isOtherBrowser) {
-    // Chrome/Firefox/Edge no iOS - precisa do Safari
     banner.innerHTML = `
       <div class="ib-icon">⚠️</div>
       <div class="ib-content">
@@ -87,7 +80,6 @@ function renderInstallBanner() {
       <button class="ib-close" data-act="dismissinstall">✕</button>
     `;
   } else if (INSTALL.isSafari) {
-    // Safari no iOS - pode instalar
     banner.innerHTML = `
       <div class="ib-icon">📱</div>
       <div class="ib-content">
@@ -213,7 +205,6 @@ function copyAppURL() {
   });
 }
 
-// Adicionar listeners aos eventos de instalação
 document.addEventListener("click", (e) => {
   const el = e.target.closest("[data-act]");
   if (!el) return;
@@ -227,7 +218,7 @@ document.addEventListener("click", (e) => {
   } else if (act === "copyurl") {
     e.stopPropagation();
     copyAppURL();
-  } else if (act === "installandroid") { // <-- Adicionado o handler para Android
+  } else if (act === "installandroid") {
     if (deferredPrompt) {
       deferredPrompt.prompt();
       deferredPrompt.userChoice.then(() => {
@@ -238,7 +229,6 @@ document.addEventListener("click", (e) => {
   }
 });
 
-// Mostrar banner após carregar
 window.addEventListener("load", () => {
-  setTimeout(renderInstallBanner, 1500); // Aguarda 1.5s pra não ser intrusivo
+  setTimeout(renderInstallBanner, 1500); 
 });

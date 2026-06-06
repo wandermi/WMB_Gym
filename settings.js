@@ -24,11 +24,9 @@ async function loadSchedule() {
 }
 
 async function saveDayWorkout(day, value) {
-  // value pode ser: workout_id, "rest", ou null
   const isRest = value === "rest";
   const workoutId = (value && value !== "rest") ? value : null;
   
-  // Upsert
   const { error } = await sb.from("schedule")
     .upsert({
       user_id: APP.user.id,
@@ -44,16 +42,11 @@ async function saveDayWorkout(day, value) {
   }
   
   if (value === null || value === "") {
-    // Remover entrada
-    await sb.from("schedule")
-      .delete()
-      .eq("user_id", APP.user.id)
-      .eq("day_of_week", day);
+    await sb.from("schedule").delete().eq("user_id", APP.user.id).eq("day_of_week", day);
     delete SETT.schedule[day];
   } else {
     SETT.schedule[day] = value;
   }
-  
   render();
 }
 
@@ -61,34 +54,26 @@ async function clearAllProgress() {
   if (!confirm("⚠️ Isso vai APAGAR todo o seu histórico de treinos e cargas registradas. Tem certeza?")) return;
   if (!confirm("Última chance! Vai apagar TUDO. Continuar?")) return;
   
-  // Apagar set_logs primeiro (cascade vai cuidar)
   await sb.from("set_logs").delete().eq("user_id", APP.user.id);
   await sb.from("workout_sessions").delete().eq("user_id", APP.user.id);
   
   showToast("Histórico apagado", "success");
   HIST.sessions = [];
-}
-
-async function resetWorkouts() {
-  if (!confirm("⚠️ Isso vai APAGAR seus treinos atuais e reimportar o Protocolo 2 do zero. Continuar?")) return;
-  if (!confirm("Isso também apaga TODO o histórico relacionado. Tem certeza?")) return;
-  
-  await sb.from("set_logs").delete().eq("user_id", APP.user.id);
-  await sb.from("workout_sessions").delete().eq("user_id", APP.user.id);
-  await sb.from("schedule").delete().eq("user_id", APP.user.id);
-  // Cascade vai apagar exercises automaticamente
-  await sb.from("workouts").delete().eq("user_id", APP.user.id);
-  
-  showToast("Reimportando treinos...", "info");
-  await seedInitialWorkouts();
-  await loadWorkouts();
-  SETT.schedule = {};
-  
-  showToast("Treinos resetados!", "success");
   render();
 }
 
 function vSettings() {
+  // Encontrar o protocolo atual
+  const currentProtocolName = APP.workouts[0]?.protocol_name || "Nenhum";
+  let pData = { name: currentProtocolName, goal: "-", level: "-", cardio: "Não definido" };
+  
+  for (const key in PROTOCOLS_CATALOG) {
+    if (PROTOCOLS_CATALOG[key].name === currentProtocolName) {
+      pData = PROTOCOLS_CATALOG[key];
+      break;
+    }
+  }
+
   return `
     <div class="settings-screen">
       <header class="hist-header">
@@ -133,10 +118,13 @@ function vSettings() {
         <section class="settings-section">
           <h3 class="settings-title">📋 PROTOCOLO ATUAL</h3>
           <div class="protocol-info">
-            <div class="pi-line"><strong>Nome:</strong> Protocolo 2</div>
-            <div class="pi-line"><strong>Foco:</strong> Hipertrofia</div>
-            <div class="pi-line"><strong>Nível:</strong> Intermediário</div>
-            <div class="pi-line"><strong>Cardio:</strong> 20-40min de esteira com inclinação ou bike em todos os treinos</div>
+            <div class="pi-line"><strong>Nome:</strong> ${escapeHTML(pData.name)}</div>
+            <div class="pi-line"><strong>Foco:</strong> ${escapeHTML(pData.goal)}</div>
+            <div class="pi-line"><strong>Nível:</strong> ${escapeHTML(pData.level)}</div>
+            <div class="pi-line"><strong>Cardio:</strong> ${escapeHTML(pData.cardio)}</div>
+            <button class="auth-btn" data-act="goto" data-view="onboarding" style="margin-top: 14px; background: var(--bg); border: 1px solid var(--a); color: var(--a);">
+              🔄 Trocar Protocolo de Treino
+            </button>
           </div>
         </section>
         
@@ -147,14 +135,10 @@ function vSettings() {
           <button class="danger-btn" data-act="clearprogress">
             🗑️ Apagar Histórico de Treinos
           </button>
-          
-          <button class="danger-btn" data-act="resetworkouts">
-            🔄 Resetar Treinos e Reimportar Protocolo
-          </button>
         </section>
         
         <div class="version-info">
-          WMB GYM v4.0 • ${APP.user?.email || ""}
+          WMB GYM v5.0 • ${APP.user?.email || ""}
         </div>
       </div>
     </div>

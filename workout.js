@@ -35,11 +35,9 @@ function playBeep(frequency = 800, duration = 200, volume = 0.3) {
 }
 
 function playRestEndSound() {
-  // 3 beeps em sequência
   playBeep(800, 200);
   setTimeout(() => playBeep(800, 200), 250);
   setTimeout(() => playBeep(1000, 400), 500);
-  // Vibração
   if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 400]);
 }
 
@@ -75,10 +73,8 @@ async function startWorkout(workoutId) {
   WO.startedAt = Date.now();
   WO.summary = null;
   
-  // Carregar logs anteriores de cada exercício
   await loadPreviousLogs();
   
-  // Criar workout_session no banco
   const { data: session, error } = await sb.from("workout_sessions").insert({
     user_id: APP.user.id,
     workout_id: wo.id,
@@ -91,7 +87,6 @@ async function startWorkout(workoutId) {
   if (error) { console.error(error); showToast("Erro ao iniciar sessão", "error"); return; }
   WO.session = session;
   
-  // Inicializar setLogs vazios pra cada exercício principal
   wo.exercises.forEach(ex => {
     if (!ex.is_warmup && !ex.is_mobility) {
       WO.setLogs[ex.id] = Array.from({length: ex.sets || 0}, (_, i) => ({
@@ -103,7 +98,6 @@ async function startWorkout(workoutId) {
     }
   });
   
-  // Iniciar timer da sessão
   WO.sessionTimerId = setInterval(() => {
     if (APP.view === "workout") updateSessionTimer();
   }, 1000);
@@ -117,7 +111,6 @@ async function loadPreviousLogs() {
   const exerciseIds = WO.workout.exercises.filter(e => !e.is_warmup && !e.is_mobility).map(e => e.id);
   if (exerciseIds.length === 0) return;
   
-  // Pega os últimos set_logs completados de cada exercício
   const { data, error } = await sb.from("set_logs")
     .select("exercise_id, weight_kg, reps_done, set_number, completed_at")
     .eq("user_id", APP.user.id)
@@ -127,7 +120,6 @@ async function loadPreviousLogs() {
   
   if (error || !data) return;
   
-  // Pegar o último log de cada exercise_id (primeiro que aparecer)
   data.forEach(log => {
     if (!WO.previousLogs[log.exercise_id]) {
       WO.previousLogs[log.exercise_id] = {
@@ -147,17 +139,14 @@ async function finishWorkout() {
   const durationMs = Date.now() - WO.startedAt;
   const durationMin = Math.max(1, Math.round(durationMs / 60000));
   
-  // Atualizar workout_session
   await sb.from("workout_sessions").update({
     finished_at: new Date().toISOString(),
     duration_min: durationMin,
     completed_sets: completedSets
   }).eq("id", WO.session.id);
   
-  // Salvar resumo para mostrar no ecrã de celebração
   WO.summary = { duration: durationMin, completedSets: completedSets, totalSets: totalSets, name: WO.workout.name };
   
-  // Limpar timers
   if (WO.sessionTimerId) clearInterval(WO.sessionTimerId);
   if (WO.restTimer?.intervalId) clearInterval(WO.restTimer.intervalId);
   
@@ -172,7 +161,6 @@ async function finishWorkout() {
 async function cancelWorkout() {
   if (!confirm("Cancelar treino? Os dados desta sessão serão perdidos.")) return;
   
-  // Apagar a session
   if (WO.session) {
     await sb.from("workout_sessions").delete().eq("id", WO.session.id);
   }
@@ -199,13 +187,11 @@ async function toggleSetCompleted(exerciseId, setIndex) {
   const set = sets[setIndex];
   const wasCompleted = set.completed;
   
-  // Sincronizar inputs visíveis primeiro
   syncSetInputs(exerciseId);
   
   set.completed = !wasCompleted;
   set.completed_at = set.completed ? new Date().toISOString() : null;
   
-  // Salvar no banco
   const exercise = WO.workout.exercises.find(e => e.id === exerciseId);
   
   if (set.completed) {
@@ -215,28 +201,25 @@ async function toggleSetCompleted(exerciseId, setIndex) {
       exercise_id: exerciseId,
       exercise_name: exercise.name,
       set_number: set.set_number,
-      weight_kg: set.weight ? parseFloat(set.weight.replace(',', '.')) : null,
+      weight_kg: set.weight ? parseFloat(set.weight.toString().replace(',', '.')) : null,
       reps_done: set.reps || null,
       completed: true,
       completed_at: set.completed_at
     };
 
     if (!navigator.onLine) {
-      // Guarda localmente se estiver offline
       const queue = JSON.parse(localStorage.getItem("wmb_offline_sets") || "[]");
       queue.push(logData);
       localStorage.setItem("wmb_offline_sets", JSON.stringify(queue));
       showToast("Salvo offline. Irá sincronizar quando houver internet.", "warn");
       startRestTimer(exercise.rest || 60, exerciseId);
     } else {
-      // Inserir diretamente no Supabase se estiver online
       const { data, error } = await sb.from("set_logs").insert(logData).select().single();
       if (data) set.log_id = data.id;
       if (error) console.error("Erro a guardar set:", error);
       startRestTimer(exercise.rest || 60, exerciseId);
     }
   } else {
-    // Remover set_log
     if (set.log_id) {
       await sb.from("set_logs").delete().eq("id", set.log_id);
       delete set.log_id;
@@ -247,7 +230,6 @@ async function toggleSetCompleted(exerciseId, setIndex) {
 }
 
 function syncSetInputs(exerciseId) {
-  // Pegar valores dos inputs visíveis e sincronizar com state
   const sets = WO.setLogs[exerciseId];
   if (!sets) return;
   
@@ -303,7 +285,6 @@ function addRestTime(seconds) {
   WO.restTimer.secondsLeft += seconds;
   WO.restTimer.totalSeconds += seconds;
   
-  // Atualiza também no localStorage
   const saved = localStorage.getItem("wmb_rest_timer");
   if (saved) {
     const data = JSON.parse(saved);
@@ -408,7 +389,6 @@ function vWorkoutExecution() {
   
   const wo = WO.workout;
   
-  // Warmup section
   let warmupHtml = "";
   if (warmupExs.length > 0 && !WO.warmupSkipped) {
     const warmupItems = WO.warmupExpanded ? warmupExs.map(ex => `
@@ -441,7 +421,6 @@ function vWorkoutExecution() {
     `;
   }
   
-  // Main exercises
   const exerciseCards = mainExs.map((ex, idx) => {
     const isExpanded = WO.expanded.has(ex.id);
     const sets = WO.setLogs[ex.id] || [];
@@ -567,14 +546,7 @@ function vWorkoutExecution() {
 }
 
 function methodName(m) {
-  const names = {
-    drop_set: "DROP SET",
-    rest_pause: "REST PAUSE",
-    cluster_set: "CLUSTER SET",
-    backoff: "BACKOFF",
-    biset: "BISET",
-    three_seven: "3/7"
-  };
+  const names = { drop_set: "DROP SET", rest_pause: "REST PAUSE", cluster_set: "CLUSTER SET", backoff: "BACKOFF", biset: "BISET", three_seven: "3/7" };
   return names[m] || m;
 }
 
@@ -609,14 +581,9 @@ function closeVideoModal() {
 function vVideoModal() {
   if (!WO.videoModal) return "";
   const ex = WO.videoModal;
-  
-  // Buscar URL customizada salva (se houver)
   const customUrl = ex.video_url || null;
-  
-  // Query para YouTube (em português + exercício)
   const searchQuery = encodeURIComponent(`${ex.name} como fazer correto musculação`);
   const youtubeSearchUrl = `https://www.youtube.com/results?search_query=${searchQuery}`;
-  const youtubeEmbedUrl = `https://www.youtube.com/embed?listType=search&list=${searchQuery}`;
   
   return `
     <div class="modal-overlay" data-act="closevideo">
@@ -682,7 +649,6 @@ function vVideoModal() {
 }
 
 function getYouTubeEmbed(url) {
-  // Extrai video ID de várias formas de URL do YouTube
   const match = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([\w-]+)/);
   if (match) return `https://www.youtube.com/embed/${match[1]}`;
   return url;

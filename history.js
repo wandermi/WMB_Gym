@@ -9,16 +9,11 @@ const HIST = {
   selectedSession: null,     // Sessão expandida (com detalhes)
   sessionDetails: null,      // set_logs da sessão selecionada
   
-  // Progress view
-  progressExercise: null,    // Exercício selecionado pra gráfico
-  progressData: [],          // Dados pro gráfico
-  exerciseList: [],          // Lista de exercícios únicos com logs
+  progressExercise: null,    
+  progressData: [],          
+  exerciseList: [],          
   chartInstance: null,
 };
-
-// ===========================================
-// DATA LOADING
-// ===========================================
 
 async function loadHistory() {
   HIST.loading = true;
@@ -58,7 +53,6 @@ async function loadSessionDetails(sessionId) {
     return;
   }
   
-  // Agrupar por exercise_name preservando ordem
   const grouped = {};
   const order = [];
   data.forEach(log => {
@@ -74,7 +68,6 @@ async function loadSessionDetails(sessionId) {
 }
 
 async function loadExerciseList() {
-  // Buscar lista de exercícios únicos que o usuário já fez
   const { data, error } = await sb.from("set_logs")
     .select("exercise_id, exercise_name")
     .eq("user_id", APP.user.id)
@@ -108,7 +101,6 @@ async function loadExerciseProgress(exerciseId) {
   
   if (error) { console.error(error); return; }
   
-  // Agrupar por sessão e pegar a carga MAX e volume da sessão
   const sessionMap = {};
   (data || []).forEach(log => {
     const key = log.session_id;
@@ -124,7 +116,6 @@ async function loadExerciseProgress(exerciseId) {
     const w = parseFloat(log.weight_kg);
     const r = parseInt(log.reps_done) || 0;
     
-    // Tratamento para exercícios bodyweight ou sem carga registrada
     if (isNaN(w) || w === 0) {
       sessionMap[key].isBodyweight = true;
       if (r > sessionMap[key].maxWeight) sessionMap[key].maxWeight = r;
@@ -140,8 +131,6 @@ async function loadExerciseProgress(exerciseId) {
   );
   
   render();
-  
-  // Renderizar gráfico após DOM atualizar
   setTimeout(renderChart, 50);
 }
 
@@ -149,7 +138,6 @@ function renderChart() {
   const canvas = document.getElementById("progress-chart");
   if (!canvas || HIST.progressData.length === 0) return;
   
-  // Destruir chart anterior se houver
   if (HIST.chartInstance) {
     HIST.chartInstance.destroy();
     HIST.chartInstance = null;
@@ -167,7 +155,7 @@ function renderChart() {
     data: {
       labels: labels,
       datasets: [{
-        label: "Carga máxima (kg)",
+        label: "Carga máxima",
         data: weights,
         borderColor: "#00FF00",
         backgroundColor: "rgba(0,255,0,0.1)",
@@ -183,40 +171,16 @@ function renderChart() {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { 
-          labels: { color: "#AAA", font: { family: "Inter", size: 11 } } 
-        },
-        tooltip: {
-          backgroundColor: "#1A1A1A",
-          borderColor: "#00FF00",
-          borderWidth: 1,
-          titleColor: "#00FF00",
-          bodyColor: "#F0F0F0",
-          padding: 12
-        }
+        legend: { labels: { color: "#AAA", font: { family: "Inter", size: 11 } } },
+        tooltip: { backgroundColor: "#1A1A1A", borderColor: "#00FF00", borderWidth: 1, titleColor: "#00FF00", bodyColor: "#F0F0F0", padding: 12 }
       },
       scales: {
-        x: {
-          grid: { color: "rgba(255,255,255,0.05)" },
-          ticks: { color: "#888", font: { size: 10 } }
-        },
-        y: {
-          grid: { color: "rgba(255,255,255,0.05)" },
-          ticks: { 
-            color: "#888", 
-            font: { size: 10 },
-            callback: (v) => `${v}kg`
-          },
-          beginAtZero: false
-        }
+        x: { grid: { color: "rgba(255,255,255,0.05)" }, ticks: { color: "#888", font: { size: 10 } } },
+        y: { grid: { color: "rgba(255,255,255,0.05)" }, ticks: { color: "#888", font: { size: 10 } }, beginAtZero: false }
       }
     }
   });
 }
-
-// ===========================================
-// COMPUTED STATS
-// ===========================================
 
 function computeStats() {
   const sessions = HIST.sessions;
@@ -224,7 +188,6 @@ function computeStats() {
   const totalMinutes = sessions.reduce((a, s) => a + (s.duration_min || 0), 0);
   const totalSets = sessions.reduce((a, s) => a + (s.completed_sets || 0), 0);
   
-  // Calcular streak (dias consecutivos com treino)
   let streak = 0;
   if (sessions.length > 0) {
     const dates = [...new Set(sessions.map(s => 
@@ -236,7 +199,6 @@ function computeStats() {
     const today = checkDate.toDateString();
     const yesterday = new Date(checkDate.getTime() - 86400000).toDateString();
     
-    // Streak conta hoje OU ontem como ponto de partida
     if (dates.includes(today) || dates.includes(yesterday)) {
       let i = dates.includes(today) ? 0 : 1;
       for (; i < 365; i++) {
@@ -247,7 +209,6 @@ function computeStats() {
     }
   }
   
-  // Treinos por semana (últimas 4 semanas)
   const fourWeeksAgo = Date.now() - 28 * 86400000;
   const recentSessions = sessions.filter(s => new Date(s.started_at).getTime() > fourWeeksAgo);
   const avgPerWeek = (recentSessions.length / 4).toFixed(1);
@@ -255,27 +216,20 @@ function computeStats() {
   return { totalWorkouts, totalMinutes, totalSets, streak, avgPerWeek };
 }
 
-// ===========================================
-// VIEWS
-// ===========================================
-
 function vHistory() {
   if (HIST.loading) return vLoading();
   
   const stats = computeStats();
   
-  // Filter chip
   const workoutOptions = APP.workouts.map(w => 
     `<button class="filter-chip ${HIST.filter === w.id ? "active" : ""}" data-act="setfilter" data-id="${w.id}" style="--ch-color:${w.color}">${w.letter || "?"}</button>`
   ).join("");
   
-  // Filtra sessões
   let filtered = HIST.sessions;
   if (HIST.filter !== "all") {
     filtered = filtered.filter(s => s.workout_id === HIST.filter);
   }
   
-  // Agrupa por mês
   const groups = {};
   filtered.forEach(s => {
     const d = new Date(s.started_at);
@@ -509,10 +463,6 @@ function renderProgressStats() {
     </div>
   `;
 }
-
-// ===========================================
-// HELPERS
-// ===========================================
 
 function monthLabel(date) {
   const months = ["JANEIRO", "FEVEREIRO", "MARÇO", "ABRIL", "MAIO", "JUNHO",
