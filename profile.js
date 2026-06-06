@@ -22,7 +22,8 @@ async function saveProfile() {
   const f = {
     name: $("#prof-name")?.value?.trim() || null,
     age: parseInt($("#prof-age")?.value) || null,
-    weight: parseFloat($("#prof-weight")?.value) || null,
+    // Suporte para vírgula no peso
+    weight: parseFloat($("#prof-weight")?.value?.replace(',', '.')) || null,
     height: parseInt($("#prof-height")?.value) || null,
     goal: $("#prof-goal")?.value || null,
     level: $("#prof-level")?.value || null,

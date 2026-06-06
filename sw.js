@@ -1,4 +1,4 @@
-const CACHE = 'wmb-v6-1';
+const CACHE = 'wmb-v7-0';
 const ASSETS = ['./', './index.html', './app.js', './config.js', './seed.js', './exercise_steps.js', './workout.js', './history.js', './profile.js', './settings.js', './install.js', './manifest.json', './icon.svg', './icon-maskable.svg', './splash.svg'];
 
 self.addEventListener('install', e => {

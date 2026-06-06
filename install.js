@@ -7,8 +7,17 @@ const INSTALL = {
   isStandalone: window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true,
   isSafari: false, // determinado abaixo
   isChrome: false,
+  isAndroidPromptReady: false,
   dismissedKey: "wmb_install_dismissed_v2"
 };
+
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  INSTALL.isAndroidPromptReady = true;
+  renderInstallBanner();
+});
 
 // Detectar navegador
 const ua = navigator.userAgent.toLowerCase();
@@ -37,7 +46,7 @@ function shouldShowInstallBanner() {
     const time = parseInt(dismissed);
     if (Date.now() - time < 24 * 60 * 60 * 1000) return false;
   }
-  return INSTALL.isIOS;
+  return true; 
 }
 
 function dismissInstallBanner() {
@@ -47,16 +56,26 @@ function dismissInstallBanner() {
 }
 
 function renderInstallBanner() {
-  // Remove se já existir
   document.getElementById("install-banner")?.remove();
   
   if (!shouldShowInstallBanner()) return;
+  if (!INSTALL.isIOS && !INSTALL.isAndroidPromptReady) return; // Só mostra no iOS ou se o Android estiver pronto
   
   const banner = document.createElement("div");
   banner.id = "install-banner";
   banner.className = "install-banner";
   
-  if (INSTALL.isOtherBrowser) {
+  if (INSTALL.isAndroidPromptReady) {
+    banner.innerHTML = `
+      <div class="ib-icon">🤖</div>
+      <div class="ib-content">
+        <div class="ib-title">Instalar App</div>
+        <div class="ib-desc">Adicione o WMB GYM à sua tela inicial</div>
+      </div>
+      <button class="ib-action" data-act="installandroid">Instalar</button>
+      <button class="ib-close" data-act="dismissinstall">✕</button>
+    `;
+  } else if (INSTALL.isOtherBrowser) {
     // Chrome/Firefox/Edge no iOS - precisa do Safari
     banner.innerHTML = `
       <div class="ib-icon">⚠️</div>
@@ -78,6 +97,8 @@ function renderInstallBanner() {
       <button class="ib-action" data-act="showinstall">Como?</button>
       <button class="ib-close" data-act="dismissinstall">✕</button>
     `;
+  } else {
+    return;
   }
   
   document.body.appendChild(banner);
@@ -206,6 +227,14 @@ document.addEventListener("click", (e) => {
   } else if (act === "copyurl") {
     e.stopPropagation();
     copyAppURL();
+  } else if (act === "installandroid") { // <-- Adicionado o handler para Android
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(() => {
+        deferredPrompt = null;
+        dismissInstallBanner();
+      });
+    }
   }
 });
 

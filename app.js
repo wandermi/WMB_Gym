@@ -179,6 +179,7 @@ async function loadUserData() {
   await updateExerciseSteps();
   
   await loadSchedule(); // Para mostrar treino do dia na home
+  restoreRestTimer();   // Restaura o timer de descanso persistente
   
   APP.view = "home";
   APP.loading = false;
@@ -368,6 +369,7 @@ function render() {
     case "auth": html = vAuth(); break;
     case "home": html = vHome(); break;
     case "workout": html = vWorkoutExecution(); break;
+    case "summary": html = vSummary(); break; 
     case "history": html = vHistory(); break;
     case "progress": html = vProgress(); break;
     case "profile": html = vProfile(); break;
@@ -581,6 +583,23 @@ sb.auth.onAuthStateChange((event, session) => {
     render();
   }
 });
+
+window.addEventListener("online", syncOfflineSets);
+
+async function syncOfflineSets() {
+  const queue = JSON.parse(localStorage.getItem("wmb_offline_sets") || "[]");
+  if (queue.length === 0) return;
+  
+  showToast("A sincronizar treinos offline...", "info");
+  const { error } = await sb.from("set_logs").insert(queue);
+  
+  if (!error) {
+    localStorage.removeItem("wmb_offline_sets");
+    showToast("Treinos sincronizados com sucesso!", "success");
+  } else {
+    showToast("Erro ao sincronizar treinos offline.", "error");
+  }
+}
 
 (async function init() {
   if ("serviceWorker" in navigator) {

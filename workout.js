@@ -13,6 +13,7 @@ const WO = {
   restTimer: null,       // { secondsLeft, totalSeconds, exerciseId, intervalId }
   startedAt: null,       // Date.now() do início
   sessionTimerId: null,  // setInterval pra atualizar header
+  summary: null          // dados para o ecrã de resumo pós-treino
 };
 
 // Audio context para beeps (criado on-demand pra evitar bloqueio)
@@ -72,6 +73,7 @@ async function startWorkout(workoutId) {
   WO.setLogs = {};
   WO.previousLogs = {};
   WO.startedAt = Date.now();
+  WO.summary = null;
   
   // Carregar logs anteriores de cada exercício
   await loadPreviousLogs();
@@ -95,7 +97,7 @@ async function startWorkout(workoutId) {
       WO.setLogs[ex.id] = Array.from({length: ex.sets || 0}, (_, i) => ({
         set_number: i + 1,
         weight: WO.previousLogs[ex.id]?.weight || "",
-        reps: "",
+        reps: WO.previousLogs[ex.id]?.reps || ex.reps || "",
         completed: false
       }));
     }
@@ -152,18 +154,18 @@ async function finishWorkout() {
     completed_sets: completedSets
   }).eq("id", WO.session.id);
   
+  // Salvar resumo para mostrar no ecrã de celebração
+  WO.summary = { duration: durationMin, completedSets: completedSets, totalSets: totalSets, name: WO.workout.name };
+  
   // Limpar timers
   if (WO.sessionTimerId) clearInterval(WO.sessionTimerId);
   if (WO.restTimer?.intervalId) clearInterval(WO.restTimer.intervalId);
   
-  showToast(`Treino concluído! ${completedSets}/${totalSets} séries em ${durationMin}min`, "success");
-  
-  // Voltar pra home
   WO.workout = null;
   WO.session = null;
   WO.setLogs = {};
   WO.restTimer = null;
-  APP.view = "home";
+  APP.view = "summary";
   render();
 }
 
@@ -207,24 +209,32 @@ async function toggleSetCompleted(exerciseId, setIndex) {
   const exercise = WO.workout.exercises.find(e => e.id === exerciseId);
   
   if (set.completed) {
-    // Inserir set_log
-    const { data, error } = await sb.from("set_logs").insert({
+    const logData = {
       session_id: WO.session.id,
       user_id: APP.user.id,
       exercise_id: exerciseId,
       exercise_name: exercise.name,
       set_number: set.set_number,
-      weight_kg: set.weight ? parseFloat(set.weight) : null,
+      weight_kg: set.weight ? parseFloat(set.weight.replace(',', '.')) : null,
       reps_done: set.reps || null,
       completed: true,
       completed_at: set.completed_at
-    }).select().single();
-    
-    if (data) set.log_id = data.id;
-    if (error) console.error("Erro salvando set:", error);
-    
-    // Iniciar timer de descanso
-    startRestTimer(exercise.rest || 60, exerciseId);
+    };
+
+    if (!navigator.onLine) {
+      // Guarda localmente se estiver offline
+      const queue = JSON.parse(localStorage.getItem("wmb_offline_sets") || "[]");
+      queue.push(logData);
+      localStorage.setItem("wmb_offline_sets", JSON.stringify(queue));
+      showToast("Salvo offline. Irá sincronizar quando houver internet.", "warn");
+      startRestTimer(exercise.rest || 60, exerciseId);
+    } else {
+      // Inserir diretamente no Supabase se estiver online
+      const { data, error } = await sb.from("set_logs").insert(logData).select().single();
+      if (data) set.log_id = data.id;
+      if (error) console.error("Erro a guardar set:", error);
+      startRestTimer(exercise.rest || 60, exerciseId);
+    }
   } else {
     // Remover set_log
     if (set.log_id) {
@@ -254,20 +264,23 @@ function syncSetInputs(exerciseId) {
 // ===========================================
 
 function startRestTimer(seconds, exerciseId) {
-  // Cancela timer anterior se houver
   if (WO.restTimer?.intervalId) clearInterval(WO.restTimer.intervalId);
   
-  WO.restTimer = {
-    secondsLeft: seconds,
-    totalSeconds: seconds,
-    exerciseId,
-    intervalId: null
-  };
+  const endTime = Date.now() + (seconds * 1000);
+  localStorage.setItem("wmb_rest_timer", JSON.stringify({ endTime, totalSeconds: seconds, exerciseId }));
   
+  WO.restTimer = { secondsLeft: seconds, totalSeconds: seconds, exerciseId, intervalId: null };
+  runRestTimerTick(endTime);
+}
+
+function runRestTimerTick(endTime) {
   WO.restTimer.intervalId = setInterval(() => {
-    WO.restTimer.secondsLeft--;
+    const now = Date.now();
+    WO.restTimer.secondsLeft = Math.ceil((endTime - now) / 1000);
+    
     if (WO.restTimer.secondsLeft <= 0) {
       clearInterval(WO.restTimer.intervalId);
+      localStorage.removeItem("wmb_rest_timer");
       playRestEndSound();
       WO.restTimer = null;
       updateRestTimerUI();
@@ -275,12 +288,12 @@ function startRestTimer(seconds, exerciseId) {
     }
     updateRestTimerUI();
   }, 1000);
-  
   updateRestTimerUI();
 }
 
 function skipRestTimer() {
   if (WO.restTimer?.intervalId) clearInterval(WO.restTimer.intervalId);
+  localStorage.removeItem("wmb_rest_timer");
   WO.restTimer = null;
   updateRestTimerUI();
 }
@@ -289,7 +302,31 @@ function addRestTime(seconds) {
   if (!WO.restTimer) return;
   WO.restTimer.secondsLeft += seconds;
   WO.restTimer.totalSeconds += seconds;
+  
+  // Atualiza também no localStorage
+  const saved = localStorage.getItem("wmb_rest_timer");
+  if (saved) {
+    const data = JSON.parse(saved);
+    data.endTime += (seconds * 1000);
+    data.totalSeconds += seconds;
+    localStorage.setItem("wmb_rest_timer", JSON.stringify(data));
+  }
+  
   updateRestTimerUI();
+}
+
+function restoreRestTimer() {
+  const saved = localStorage.getItem("wmb_rest_timer");
+  if (saved) {
+    const data = JSON.parse(saved);
+    const left = Math.ceil((data.endTime - Date.now()) / 1000);
+    if (left > 0) {
+      WO.restTimer = { secondsLeft: left, totalSeconds: data.totalSeconds, exerciseId: data.exerciseId, intervalId: null };
+      runRestTimerTick(data.endTime);
+    } else {
+      localStorage.removeItem("wmb_rest_timer");
+    }
+  }
 }
 
 function updateRestTimerUI() {
@@ -333,6 +370,30 @@ function updateSessionTimer() {
 // ===========================================
 // VIEW
 // ===========================================
+
+function vSummary() {
+  if (!WO.summary) return "";
+  return `
+    <div class="workout-screen" style="justify-content: center; align-items: center; text-align: center; padding: 40px 24px;">
+      <h1 style="font-size: 72px; margin-bottom: 16px;">🎉</h1>
+      <h2 class="wh-name" style="margin-bottom: 8px;">Treino Concluído!</h2>
+      <p style="color: var(--m); margin-bottom: 32px; font-size: 14px;">Bom trabalho no ${escapeHTML(WO.summary.name)}.</p>
+      
+      <div class="hist-stats" style="margin-bottom: 40px; width: 100%; grid-template-columns: 1fr 1fr;">
+        <div class="hs-card">
+          <div class="hs-value">${WO.summary.duration}</div>
+          <div class="hs-label">MINUTOS</div>
+        </div>
+        <div class="hs-card">
+          <div class="hs-value">${WO.summary.completedSets}/${WO.summary.totalSets}</div>
+          <div class="hs-label">SÉRIES</div>
+        </div>
+      </div>
+      
+      <button class="finish-btn ready" data-act="gohome">Voltar ao Início</button>
+    </div>
+  `;
+}
 
 function vWorkoutExecution() {
   if (!WO.workout) return "";

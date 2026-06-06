@@ -123,8 +123,16 @@ async function loadExerciseProgress(exerciseId) {
     sessionMap[key].sets.push(log);
     const w = parseFloat(log.weight_kg);
     const r = parseInt(log.reps_done) || 0;
-    if (w > sessionMap[key].maxWeight) sessionMap[key].maxWeight = w;
-    sessionMap[key].totalVolume += w * r;
+    
+    // Tratamento para exercícios bodyweight ou sem carga registrada
+    if (isNaN(w) || w === 0) {
+      sessionMap[key].isBodyweight = true;
+      if (r > sessionMap[key].maxWeight) sessionMap[key].maxWeight = r;
+      sessionMap[key].totalVolume += r;
+    } else {
+      if (w > sessionMap[key].maxWeight) sessionMap[key].maxWeight = w;
+      sessionMap[key].totalVolume += w * r;
+    }
   });
   
   HIST.progressData = Object.values(sessionMap).sort((a, b) => 
@@ -438,13 +446,17 @@ function vProgress() {
             
             <div class="progress-sessions">
               <div class="ps-title">ÚLTIMAS SESSÕES</div>
-              ${HIST.progressData.slice(-10).reverse().map(d => `
+              ${HIST.progressData.slice(-10).reverse().map(d => {
+                const unit = d.isBodyweight ? " reps" : "kg";
+                const volUnit = d.isBodyweight ? "reps total" : "kg total";
+                return `
                 <div class="ps-row">
                   <div class="ps-date">${new Date(d.date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}</div>
-                  <div class="ps-weight">${d.maxWeight}kg</div>
-                  <div class="ps-volume">${Math.round(d.totalVolume)}kg total</div>
+                  <div class="ps-weight">${d.maxWeight}${unit}</div>
+                  <div class="ps-volume">${Math.round(d.totalVolume)} ${volUnit}</div>
                 </div>
-              `).join("")}
+                `;
+              }).join("")}
             </div>
           ` : HIST.progressExercise ? `
             <div class="empty-state-large">
@@ -461,6 +473,10 @@ function vProgress() {
 function renderProgressStats() {
   if (HIST.progressData.length === 0) return "";
   
+  const isBw = HIST.progressData[0]?.isBodyweight;
+  const unit = isBw ? " reps" : "kg";
+  const volUnit = isBw ? " reps no total" : "kg no total";
+  
   const weights = HIST.progressData.map(d => d.maxWeight);
   const maxWeight = Math.max(...weights);
   const firstWeight = weights[0];
@@ -474,11 +490,11 @@ function renderProgressStats() {
     <div class="ps-grid">
       <div class="ps-stat">
         <div class="ps-stat-label">PR ATUAL</div>
-        <div class="ps-stat-value" style="color:#00FF00">${maxWeight}kg</div>
+        <div class="ps-stat-value" style="color:#00FF00">${maxWeight}${unit}</div>
       </div>
       <div class="ps-stat">
         <div class="ps-stat-label">EVOLUÇÃO</div>
-        <div class="ps-stat-value" style="color:${diff >= 0 ? "#00FF00" : "#FF6B6B"}">${diff >= 0 ? "+" : ""}${diff.toFixed(1)}kg</div>
+        <div class="ps-stat-value" style="color:${diff >= 0 ? "#00FF00" : "#FF6B6B"}">${diff >= 0 ? "+" : ""}${diff.toFixed(1)}${unit}</div>
         <div class="ps-stat-sub">${diff >= 0 ? "+" : ""}${diffPct}%</div>
       </div>
       <div class="ps-stat">
@@ -487,7 +503,8 @@ function renderProgressStats() {
       </div>
       <div class="ps-stat">
         <div class="ps-stat-label">VOLUME TOTAL</div>
-        <div class="ps-stat-value">${Math.round(totalVolume).toLocaleString("pt-BR")}kg</div>
+        <div class="ps-stat-value">${Math.round(totalVolume).toLocaleString("pt-BR")}</div>
+        <div class="ps-stat-sub">${volUnit}</div>
       </div>
     </div>
   `;
