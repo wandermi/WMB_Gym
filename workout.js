@@ -431,6 +431,9 @@ function vWorkoutExecution() {
     
     const prev = WO.previousLogs[ex.id];
     
+    // Montando a URL do GIF baseada no nome do exercício e apontando para o Supabase
+    const gifUrl = `https://ebqmtvjieyvceckcegju.supabase.co/storage/v1/object/public/gifs/${encodeURIComponent(ex.name)}.gif`;
+    
     let setsTableHtml = "";
     if (isExpanded) {
       const rows = sets.map((set, i) => `
@@ -446,8 +449,13 @@ function vWorkoutExecution() {
       setsTableHtml = `
         <div class="ex-body">
           <button class="video-btn-ex" data-act="openvideo" data-id="${ex.id}">
-            🎥 Ver demonstração
+            🎥 Ver demonstração em vídeo
           </button>
+          
+          <div style="text-align: center; margin-bottom: 14px;">
+            <img src="${gifUrl}" alt="${escapeHTML(ex.name)}" style="width: 100%; max-width: 300px; border-radius: 12px; object-fit: contain; background: var(--bg);" onerror="this.style.display='none'">
+          </div>
+
           ${ex.steps && ex.steps.length > 0 ? `
             <div class="how-to-compact">
               <div class="ex-inst-label">🎯 Como fazer</div>
