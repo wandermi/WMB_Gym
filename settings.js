@@ -57,6 +57,12 @@ async function clearAllProgress() {
   await sb.from("set_logs").delete().eq("user_id", APP.user.id);
   await sb.from("workout_sessions").delete().eq("user_id", APP.user.id);
   
+  // Limpa também filas e estados locais — evita sets órfãos ressuscitando na sincronização
+  localStorage.removeItem("wmb_offline_queue");
+  localStorage.removeItem("wmb_offline_sets");
+  localStorage.removeItem("wmb_rest_timer");
+  localStorage.removeItem("wmb_deload_active");
+  
   showToast("Histórico apagado", "success");
   HIST.sessions = [];
   render();

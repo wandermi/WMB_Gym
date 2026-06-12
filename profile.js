@@ -72,6 +72,14 @@ function vProfile() {
             <div class="profile-email">${escapeHTML(APP.user?.email || "")}</div>
           </div>
           
+          <div class="bw-log-card">
+            <div class="info-label">⚖️ REGISTRAR PESO DE HOJE</div>
+            <div class="bw-log-form">
+              <input id="bw-input" class="form-input" type="number" inputmode="decimal" step="0.1" placeholder="${p.weight || 'kg'}" style="text-align:center">
+              <button class="bw-log-btn" data-act="logbodyweight">Registrar</button>
+            </div>
+          </div>
+          
           <div class="info-grid">
             <div class="info-card">
               <div class="info-label">IDADE</div>

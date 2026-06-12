@@ -439,6 +439,59 @@ body:has(.install-banner) .settings-screen{padding-top:80px}
 body:has(.install-banner) .home-header,
 body:has(.install-banner) .hist-header,
 body:has(.install-banner) .workout-header{padding-top:16px}
+
+/* ── DROP SET ROW ── */
+.set-row.set-drop{background:rgba(255,61,0,.06)}
+.set-row.set-drop .set-num{color:#FF8F00;font-weight:700}
+.set-row.set-drop .set-prev{color:#FF8F00;font-size:9px;font-weight:700}
+
+/* ── PROGRESSION HINT ── */
+.progression-hint{background:linear-gradient(135deg,rgba(0,255,0,.12),rgba(0,255,0,.04));border:1px solid rgba(0,255,0,.35);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text-soft);line-height:1.5;margin-bottom:10px}
+.progression-hint strong{color:var(--a)}
+
+/* ── SUMMARY (PRs + Cardio) ── */
+.summary-screen{justify-content:center;align-items:center;text-align:center;padding:40px 24px;display:flex;flex-direction:column}
+.summary-emoji{font-size:72px;margin-bottom:16px}
+.summary-title{margin-bottom:8px}
+.summary-sub{color:var(--m);margin-bottom:24px;font-size:14px}
+.summary-stats{margin-bottom:20px;width:100%;grid-template-columns:1fr 1fr}
+.pr-block{width:100%;background:linear-gradient(135deg,rgba(255,214,0,.12),rgba(255,214,0,.03));border:1px solid rgba(255,214,0,.4);border-radius:12px;padding:14px;margin-bottom:14px;text-align:left}
+.pr-title{font-size:11px;color:#FFD600;font-weight:700;letter-spacing:.08em;margin-bottom:10px;text-align:center}
+.pr-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,214,0,.12)}
+.pr-row:last-child{border-bottom:none}
+.pr-name{font-size:12px;color:var(--text-soft);flex:1;padding-right:8px}
+.pr-weight{font-family:'Bebas Neue',sans-serif;font-size:18px;color:#FFD600;white-space:nowrap}
+.pr-prev{font-family:'Inter',sans-serif;font-size:10px;color:var(--m)}
+.cardio-block{width:100%;background:var(--card);border:1px solid var(--b);border-radius:12px;padding:14px;margin-bottom:6px}
+.cardio-title{font-size:11px;color:#4A9EFF;font-weight:700;letter-spacing:.06em;margin-bottom:10px;text-align:center}
+.cardio-form{display:flex;gap:8px;align-items:center}
+.cardio-save-btn{background:#4A9EFF;border:none;border-radius:10px;color:#fff;font-size:16px;font-weight:700;width:46px;height:46px;cursor:pointer;flex-shrink:0}
+.cardio-save-btn:active{transform:scale(.94)}
+.cardio-saved{width:100%;background:rgba(74,158,255,.1);border:1px solid rgba(74,158,255,.4);border-radius:12px;padding:12px;font-size:13px;color:#4A9EFF;font-weight:600;margin-bottom:6px}
+
+/* ── DELOAD BANNER ── */
+.deload-banner{display:flex;align-items:flex-start;gap:12px;background:linear-gradient(135deg,rgba(255,214,0,.1),rgba(255,143,0,.05));border:1px solid rgba(255,214,0,.4);border-radius:12px;padding:13px 14px;margin-bottom:16px}
+.db-icon{font-size:24px;flex-shrink:0}
+.db-content{flex:1}
+.db-title{font-family:'Bebas Neue',sans-serif;font-size:15px;color:#FFD600;letter-spacing:.04em}
+.db-desc{font-size:11px;color:var(--text-soft);margin-top:4px;line-height:1.5}
+
+/* ── BODY WEIGHT ── */
+.bw-log-card{background:var(--card);border:1px solid var(--b);border-radius:12px;padding:14px;margin-bottom:14px}
+.bw-log-form{display:flex;gap:8px;margin-top:8px}
+.bw-log-form .form-input{flex:1}
+.bw-log-btn{background:var(--a);border:none;border-radius:10px;color:#000;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;padding:0 18px;cursor:pointer;white-space:nowrap}
+.bw-log-btn:active{transform:scale(.96)}
+.bw-summary{font-size:11px;color:var(--m);margin-top:8px;text-align:center}
+.bw-summary strong{color:#FFD600}
+
+/* ── ONBOARDING (classes em vez de inline) ── */
+.onb-option{background:var(--bg);border:1px solid var(--b);border-radius:10px;padding:14px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:border-color .15s}
+.onb-option:active{border-color:var(--a)}
+.onb-option input[type=radio]{accent-color:var(--a);transform:scale(1.2);flex-shrink:0}
+.onb-option-title{font-weight:bold;color:var(--text)}
+.onb-option-desc{font-size:11px;color:var(--m)}
+
 </style>
 </head>
 <body>
@@ -450,10 +503,7 @@ body:has(.install-banner) .workout-header{padding-top:16px}
 </div>
 
 <!-- Supabase client -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<!-- Chart.js para gráficos -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <!-- App scripts (ordem importa!) -->
 <script src="config.js"></script>
 <script src="seed.js"></script>

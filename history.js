@@ -123,6 +123,11 @@ async function loadExerciseProgress(exerciseId) {
     } else {
       if (w > sessionMap[key].maxWeight) sessionMap[key].maxWeight = w;
       sessionMap[key].totalVolume += w * r;
+      // e1RM estimado (Epley): peso × (1 + reps/30) — métrica que normaliza faixas de reps diferentes
+      if (r > 0) {
+        const e1 = w * (1 + r / 30);
+        if (!sessionMap[key].e1rm || e1 > sessionMap[key].e1rm) sessionMap[key].e1rm = Math.round(e1 * 10) / 10;
+      }
     }
   });
   
@@ -134,9 +139,11 @@ async function loadExerciseProgress(exerciseId) {
   setTimeout(renderChart, 50);
 }
 
-function renderChart() {
+async function renderChart() {
   const canvas = document.getElementById("progress-chart");
   if (!canvas || HIST.progressData.length === 0) return;
+  
+  try { await loadChartJs(); } catch { showToast("Sem internet para carregar o gráfico", "warn"); return; }
   
   if (HIST.chartInstance) {
     HIST.chartInstance.destroy();
@@ -149,34 +156,57 @@ function renderChart() {
     return `${date.getDate()}/${date.getMonth() + 1}`;
   });
   const weights = HIST.progressData.map(d => d.maxWeight);
+  const e1rms = HIST.progressData.map(d => d.e1rm || null);
+  const hasE1rm = e1rms.some(v => v !== null);
+  
+  const datasets = [{
+    label: "Carga máxima (kg)",
+    data: weights,
+    borderColor: "#00FF00",
+    backgroundColor: "rgba(0,255,0,0.1)",
+    borderWidth: 2,
+    tension: 0.3,
+    pointBackgroundColor: "#00FF00",
+    pointRadius: 4,
+    pointHoverRadius: 6,
+    fill: true
+  }];
+  
+  if (hasE1rm) {
+    datasets.push({
+      label: "1RM estimado (kg)",
+      data: e1rms,
+      borderColor: "#4A9EFF",
+      backgroundColor: "transparent",
+      borderWidth: 2,
+      borderDash: [6, 4],
+      tension: 0.3,
+      pointBackgroundColor: "#4A9EFF",
+      pointRadius: 3,
+      fill: false
+    });
+  }
   
   HIST.chartInstance = new Chart(ctx, {
     type: "line",
-    data: {
-      labels: labels,
-      datasets: [{
-        label: "Carga máxima",
-        data: weights,
-        borderColor: "#00FF00",
-        backgroundColor: "rgba(0,255,0,0.1)",
-        borderWidth: 2,
-        tension: 0.3,
-        pointBackgroundColor: "#00FF00",
-        pointRadius: 4,
-        pointHoverRadius: 6,
-        fill: true
-      }]
-    },
+    data: { labels, datasets },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
         legend: { labels: { color: "#AAA", font: { family: "Inter", size: 11 } } },
-        tooltip: { backgroundColor: "#1A1A1A", borderColor: "#00FF00", borderWidth: 1, titleColor: "#00FF00", bodyColor: "#F0F0F0", padding: 12 }
+        tooltip: {
+          backgroundColor: "#1A1A1A",
+          borderColor: "#00FF00",
+          borderWidth: 1,
+          titleColor: "#00FF00",
+          bodyColor: "#F0F0F0",
+          padding: 12
+        }
       },
       scales: {
         x: { grid: { color: "rgba(255,255,255,0.05)" }, ticks: { color: "#888", font: { size: 10 } } },
-        y: { grid: { color: "rgba(255,255,255,0.05)" }, ticks: { color: "#888", font: { size: 10 } }, beginAtZero: false }
+        y: { grid: { color: "rgba(255,255,255,0.05)" }, ticks: { color: "#888", font: { size: 10 }, callback: (v) => `${v}kg` }, beginAtZero: false }
       }
     }
   });
@@ -376,6 +406,21 @@ function vProgress() {
         </div>
       ` : `
         <div class="progress-body">
+          ${HIST.bodyLogs.length >= 2 ? `
+            <div class="chart-card" style="margin-bottom:16px">
+              <div class="chart-title">⚖️ PESO CORPORAL</div>
+              <div class="chart-container" style="height:160px">
+                <canvas id="body-chart"></canvas>
+              </div>
+              <div class="bw-summary">
+                Atual: <strong>${HIST.bodyLogs[HIST.bodyLogs.length-1].weight_kg}kg</strong>
+                ${HIST.bodyLogs.length >= 2 ? (() => {
+                  const diff = (parseFloat(HIST.bodyLogs[HIST.bodyLogs.length-1].weight_kg) - parseFloat(HIST.bodyLogs[0].weight_kg)).toFixed(1);
+                  return ` • ${diff > 0 ? "+" : ""}${diff}kg no período`;
+                })() : ""}
+              </div>
+            </div>
+          ` : ""}
           <div class="exercise-selector">
             <label class="form-label">Exercício</label>
             <select class="exercise-select" data-act="selectexercise">
@@ -475,4 +520,63 @@ function fmtTotalTime(minutes) {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
   return `${h}h${m > 0 ? m + "m" : ""}`;
+}
+
+// ===========================================
+// PESO CORPORAL - dados e gráfico
+// ===========================================
+
+HIST.bodyLogs = [];
+HIST.bodyChartInstance = null;
+
+async function loadBodyLogs() {
+  const { data, error } = await sb.from("body_logs")
+    .select("log_date, weight_kg")
+    .eq("user_id", APP.user.id)
+    .order("log_date", { ascending: true })
+    .limit(120);
+  if (!error && data) HIST.bodyLogs = data;
+}
+
+async function renderBodyChart() {
+  const canvas = document.getElementById("body-chart");
+  if (!canvas || HIST.bodyLogs.length < 2) return;
+  
+  try { await loadChartJs(); } catch { return; }
+  
+  if (HIST.bodyChartInstance) { HIST.bodyChartInstance.destroy(); HIST.bodyChartInstance = null; }
+  
+  const ctx = canvas.getContext("2d");
+  HIST.bodyChartInstance = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: HIST.bodyLogs.map(d => {
+        const dt = new Date(d.log_date + "T12:00:00");
+        return `${dt.getDate()}/${dt.getMonth() + 1}`;
+      }),
+      datasets: [{
+        label: "Peso corporal (kg)",
+        data: HIST.bodyLogs.map(d => parseFloat(d.weight_kg)),
+        borderColor: "#FFD600",
+        backgroundColor: "rgba(255,214,0,0.08)",
+        borderWidth: 2,
+        tension: 0.3,
+        pointBackgroundColor: "#FFD600",
+        pointRadius: 3,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: "#AAA", font: { family: "Inter", size: 11 } } },
+        tooltip: { backgroundColor: "#1A1A1A", borderColor: "#FFD600", borderWidth: 1, titleColor: "#FFD600", bodyColor: "#F0F0F0", padding: 12 }
+      },
+      scales: {
+        x: { grid: { color: "rgba(255,255,255,0.05)" }, ticks: { color: "#888", font: { size: 10 } } },
+        y: { grid: { color: "rgba(255,255,255,0.05)" }, ticks: { color: "#888", font: { size: 10 }, callback: v => `${v}kg` }, beginAtZero: false }
+      }
+    }
+  });
 }

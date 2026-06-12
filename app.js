@@ -181,9 +181,14 @@ async function loadUserData() {
   await loadProfile();
   await loadWorkouts();
   
-  await updateExerciseSteps();
+  // Steps só precisam ser verificados uma vez por versão
+  if (!localStorage.getItem("wmb_steps_done_v1")) {
+    await updateExerciseSteps();
+    localStorage.setItem("wmb_steps_done_v1", "1");
+  }
   await loadSchedule(); 
-  restoreRestTimer();   
+  restoreRestTimer();
+  checkDeloadAlert(); // assíncrono, não bloqueia
   
   APP.loading = false;
 
@@ -249,43 +254,43 @@ function vOnboarding() {
             <label class="form-label" style="color: var(--a);">QUAL O SEU NÍVEL DE EXPERIÊNCIA?</label>
             <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;">
               
-              <label style="background: var(--bg); border: 1px solid var(--b); border-radius: 10px; padding: 14px; display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                <input type="radio" name="level" value="protocolo_1" required style="accent-color: var(--a); transform: scale(1.2);">
+              <label class="onb-option">
+                <input type="radio" name="level" value="protocolo_1" required>
                 <div>
-                  <div style="font-weight: bold; color: var(--text);">Iniciante (Prot. 1)</div>
-                  <div style="font-size: 11px; color: var(--m);">Estou começando agora. Foco em aprender os movimentos e usar máquinas.</div>
+                  <div class="onb-option-title">Iniciante (Prot. 1)</div>
+                  <div class="onb-option-desc">Estou começando agora. Foco em aprender os movimentos e usar máquinas.</div>
                 </div>
               </label>
 
-              <label style="background: var(--bg); border: 1px solid var(--b); border-radius: 10px; padding: 14px; display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                <input type="radio" name="level" value="protocolo_2" style="accent-color: var(--a); transform: scale(1.2);">
+              <label class="onb-option">
+                <input type="radio" name="level" value="protocolo_2">
                 <div>
-                  <div style="font-weight: bold; color: var(--text);">Intermediário (Prot. 2)</div>
-                  <div style="font-size: 11px; color: var(--m);">Já treino há algum tempo. Quero focar em hipertrofia e pesos livres.</div>
+                  <div class="onb-option-title">Intermediário (Prot. 2)</div>
+                  <div class="onb-option-desc">Já treino há algum tempo. Quero focar em hipertrofia e pesos livres.</div>
                 </div>
               </label>
 
-              <label style="background: var(--bg); border: 1px solid var(--b); border-radius: 10px; padding: 14px; display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                <input type="radio" name="level" value="protocolo_3" style="accent-color: var(--a); transform: scale(1.2);">
+              <label class="onb-option">
+                <input type="radio" name="level" value="protocolo_3">
                 <div>
-                  <div style="font-weight: bold; color: var(--text);">Intermediário II (Prot. 3)</div>
-                  <div style="font-size: 11px; color: var(--m);">Volume maior. Treino ABCD.</div>
+                  <div class="onb-option-title">Intermediário II (Prot. 3)</div>
+                  <div class="onb-option-desc">Volume maior. Treino ABCD.</div>
                 </div>
               </label>
 
-              <label style="background: var(--bg); border: 1px solid var(--b); border-radius: 10px; padding: 14px; display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                <input type="radio" name="level" value="protocolo_4" style="accent-color: var(--a); transform: scale(1.2);">
+              <label class="onb-option">
+                <input type="radio" name="level" value="protocolo_4">
                 <div>
-                  <div style="font-weight: bold; color: var(--text);">Avançado (Prot. 4)</div>
-                  <div style="font-size: 11px; color: var(--m);">Intensidade máxima. Treino ABCDE.</div>
+                  <div class="onb-option-title">Avançado (Prot. 4)</div>
+                  <div class="onb-option-desc">Intensidade máxima. Treino ABCDE.</div>
                 </div>
               </label>
 
-              <label style="background: var(--bg); border: 1px solid var(--b); border-radius: 10px; padding: 14px; display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                <input type="radio" name="level" value="protocolo_5" style="accent-color: var(--a); transform: scale(1.2);">
+              <label class="onb-option">
+                <input type="radio" name="level" value="protocolo_5">
                 <div>
-                  <div style="font-weight: bold; color: var(--text);">Avançado Especialista (Prot. 5)</div>
-                  <div style="font-size: 11px; color: var(--m);">Detalhamento. Treino ABCDEF.</div>
+                  <div class="onb-option-title">Avançado Especialista (Prot. 5)</div>
+                  <div class="onb-option-desc">Detalhamento. Treino ABCDEF.</div>
                 </div>
               </label>
               
@@ -469,6 +474,12 @@ function render() {
     app.insertAdjacentHTML("beforeend", vMenu());
   }
   
+  // Banner de deload persiste entre renders da home
+  if (APP.view === "home" && localStorage.getItem("wmb_deload_active")) {
+    const dismissed = parseInt(localStorage.getItem("wmb_deload_dismissed") || "0");
+    if (Date.now() - dismissed > 7 * 86400000) injectDeloadBanner("7+");
+  }
+  
   if (WO.videoModal && APP.view === "workout") {
     app.insertAdjacentHTML("beforeend", vVideoModal());
   }
@@ -477,8 +488,9 @@ function render() {
     updateRestTimerUI();
   }
   
-  if (APP.view === "progress" && HIST.progressExercise && HIST.progressData.length > 0) {
-    setTimeout(renderChart, 50);
+  if (APP.view === "progress") {
+    if (HIST.progressExercise && HIST.progressData.length > 0) setTimeout(renderChart, 50);
+    if (HIST.bodyLogs && HIST.bodyLogs.length >= 2) setTimeout(renderBodyChart, 50);
   }
 }
 
@@ -495,6 +507,21 @@ document.addEventListener("click", async (e) => {
   if (act === "setmode") {
     APP.authMode = el.dataset.mode;
     render();
+  } else if (act === "forgot") {
+    e.preventDefault();
+    const email = $("#auth-email")?.value?.trim();
+    if (!email) { showToast("Digite seu email no campo acima primeiro", "warn"); return; }
+    const { error } = await sb.auth.resetPasswordForEmail(email, {
+      redirectTo: location.origin + location.pathname
+    });
+    showToast(error ? error.message : "Email de recuperação enviado! Verifique a caixa de entrada.", error ? "error" : "success");
+  } else if (act === "savecardio") {
+    await saveCardio();
+  } else if (act === "logbodyweight") {
+    await logBodyWeight();
+  } else if (act === "dismissdeload") {
+    localStorage.setItem("wmb_deload_dismissed", Date.now().toString());
+    document.getElementById("deload-banner")?.remove();
   } else if (act === "menu") {
     APP.modal = "menu";
     render();
@@ -584,7 +611,7 @@ document.addEventListener("click", async (e) => {
     HIST.progressExercise = null;
     HIST.progressData = [];
     render();
-    await loadExerciseList();
+    await Promise.all([loadExerciseList(), loadBodyLogs()]);
     render();
   } else if (act === "setfilter") {
     HIST.filter = el.dataset.id;
@@ -671,21 +698,197 @@ sb.auth.onAuthStateChange((event, session) => {
   }
 });
 
-window.addEventListener("online", syncOfflineSets);
+// ===========================================
+// CHART.JS SOB DEMANDA (~200KB só quando precisa)
+// ===========================================
 
-async function syncOfflineSets() {
-  const queue = JSON.parse(localStorage.getItem("wmb_offline_sets") || "[]");
+let chartJsPromise = null;
+function loadChartJs() {
+  if (window.Chart) return Promise.resolve();
+  if (chartJsPromise) return chartJsPromise;
+  chartJsPromise = new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js";
+    s.onload = resolve;
+    s.onerror = () => { chartJsPromise = null; reject(new Error("Falha ao carregar Chart.js")); };
+    document.head.appendChild(s);
+  });
+  return chartJsPromise;
+}
+
+// ===========================================
+// ALERTA DE DELOAD
+// 7+ semanas de treino contínuo sem pausa → sugerir semana leve
+// ===========================================
+
+async function checkDeloadAlert() {
+  // Checa no máximo 1x por dia; respeita dispensa de 7 dias
+  const dismissed = parseInt(localStorage.getItem("wmb_deload_dismissed") || "0");
+  if (Date.now() - dismissed < 7 * 86400000) return;
+  const lastCheck = parseInt(localStorage.getItem("wmb_deload_checked") || "0");
+  if (Date.now() - lastCheck < 86400000 && !localStorage.getItem("wmb_deload_active")) return;
+  localStorage.setItem("wmb_deload_checked", Date.now().toString());
+  
+  const { data, error } = await sb.from("workout_sessions")
+    .select("started_at")
+    .eq("user_id", APP.user.id)
+    .not("finished_at", "is", null)
+    .order("started_at", { ascending: false })
+    .limit(150);
+  
+  if (error || !data || data.length < 12) { localStorage.removeItem("wmb_deload_active"); return; }
+  
+  // Conta semanas consecutivas com 2+ treinos, do presente para trás; gap quebra a sequência
+  const weeks = {};
+  data.forEach(s => {
+    const d = new Date(s.started_at);
+    const weekKey = Math.floor(d.getTime() / (7 * 86400000));
+    weeks[weekKey] = (weeks[weekKey] || 0) + 1;
+  });
+  
+  const currentWeek = Math.floor(Date.now() / (7 * 86400000));
+  let streak = 0;
+  for (let w = currentWeek; w > currentWeek - 30; w--) {
+    if ((weeks[w] || 0) >= 2) streak++;
+    else if (w !== currentWeek) break; // semana atual incompleta não quebra
+  }
+  
+  if (streak >= 7) {
+    localStorage.setItem("wmb_deload_active", "1");
+    injectDeloadBanner(streak);
+  } else {
+    localStorage.removeItem("wmb_deload_active");
+  }
+}
+
+function injectDeloadBanner(weeks) {
+  if (APP.view !== "home" || document.getElementById("deload-banner")) return;
+  const home = document.querySelector(".home-container");
+  if (!home) return;
+  const banner = document.createElement("div");
+  banner.id = "deload-banner";
+  banner.className = "deload-banner";
+  banner.innerHTML = `
+    <div class="db-icon">🔋</div>
+    <div class="db-content">
+      <div class="db-title">${weeks} semanas seguidas de treino!</div>
+      <div class="db-desc">Considere uma semana de deload: mesmas séries com 50-60% da carga, sem falha. Seu corpo supercompensa no descanso.</div>
+    </div>
+    <button class="ib-close" data-act="dismissdeload">✕</button>
+  `;
+  const header = home.querySelector(".home-header");
+  if (header) header.insertAdjacentElement("afterend", banner);
+}
+
+// ===========================================
+// REGISTRO DE PESO CORPORAL
+// ===========================================
+
+async function logBodyWeight() {
+  const input = document.getElementById("bw-input");
+  const weight = parseFloat(input?.value?.replace(",", "."));
+  if (!weight || weight < 30 || weight > 300) { showToast("Peso inválido", "warn"); return; }
+  
+  const { error } = await sb.from("body_logs")
+    .upsert({ user_id: APP.user.id, log_date: new Date().toISOString().split("T")[0], weight_kg: weight },
+            { onConflict: "user_id,log_date" });
+  
+  if (error) { console.error(error); showToast("Erro ao registrar peso: " + error.message, "error"); return; }
+  
+  // Atualiza também o peso do perfil
+  await sb.from("profiles").update({ weight, updated_at: new Date().toISOString() }).eq("id", APP.user.id);
+  if (APP.profile) APP.profile.weight = weight;
+  
+  showToast(`Peso registrado: ${weight}kg ⚖️`, "success");
+  if (typeof loadBodyLogs === "function") { await loadBodyLogs(); render(); }
+}
+
+// ===========================================
+// FILA OFFLINE GENÉRICA
+// Suporta insert/update em qualquer tabela, processa item a item,
+// remove sucessos e descarta itens com 5+ falhas (FK quebrada etc.)
+// ===========================================
+
+const OFFLINE_QUEUE_KEY = "wmb_offline_queue";
+
+function getOfflineQueue() {
+  try { return JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY) || "[]"); }
+  catch { return []; }
+}
+
+function setOfflineQueue(q) {
+  localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(q));
+}
+
+function queueOffline(item) {
+  const q = getOfflineQueue();
+  q.push({ ...item, tries: 0, queuedAt: Date.now() });
+  setOfflineQueue(q);
+}
+
+function removeFromOfflineQueue(predicate) {
+  const q = getOfflineQueue().filter(item => !predicate(item));
+  setOfflineQueue(q);
+}
+
+// Migra fila do formato antigo (wmb_offline_sets) se existir
+(function migrateOldQueue() {
+  const old = localStorage.getItem("wmb_offline_sets");
+  if (!old) return;
+  try {
+    const items = JSON.parse(old);
+    const q = getOfflineQueue();
+    items.forEach(payload => q.push({ table: "set_logs", op: "insert", payload, tries: 0 }));
+    setOfflineQueue(q);
+  } catch {}
+  localStorage.removeItem("wmb_offline_sets");
+})();
+
+window.addEventListener("online", syncOfflineQueue);
+
+async function syncOfflineQueue() {
+  let queue = getOfflineQueue();
   if (queue.length === 0) return;
   
-  showToast("A sincronizar treinos offline...", "info");
-  const { error } = await sb.from("set_logs").insert(queue);
+  showToast("A sincronizar dados offline...", "info");
   
-  if (!error) {
-    localStorage.removeItem("wmb_offline_sets");
-    showToast("Treinos sincronizados com sucesso!", "success");
-  } else {
-    showToast("Erro ao sincronizar treinos offline.", "error");
+  // Ordem importa: sessions (insert) antes de sets (FK), updates por último
+  const priority = item => {
+    if (item.table === "workout_sessions" && item.op === "insert") return 0;
+    if (item.op === "insert") return 1;
+    return 2;
+  };
+  queue.sort((a, b) => priority(a) - priority(b));
+  
+  const remaining = [];
+  let ok = 0, dropped = 0;
+  
+  for (const item of queue) {
+    let error = null;
+    try {
+      if (item.op === "insert") {
+        ({ error } = await sb.from(item.table).insert(item.payload));
+        // Duplicado (já sincronizado antes): considera sucesso
+        if (error && error.code === "23505") error = null;
+      } else if (item.op === "update") {
+        let q = sb.from(item.table).update(item.payload);
+        for (const [k, v] of Object.entries(item.match || {})) q = q.eq(k, v);
+        ({ error } = await q);
+      }
+    } catch (e) { error = e; }
+    
+    if (!error) { ok++; continue; }
+    
+    item.tries = (item.tries || 0) + 1;
+    if (item.tries >= 5) { dropped++; console.warn("Item offline descartado após 5 tentativas:", item, error); }
+    else remaining.push(item);
   }
+  
+  setOfflineQueue(remaining);
+  
+  if (ok > 0) showToast(`${ok} ${ok === 1 ? "registro sincronizado" : "registros sincronizados"}!`, "success");
+  if (remaining.length > 0) showToast(`${remaining.length} pendentes — tentando novamente depois`, "warn");
+  if (dropped > 0) console.warn(`${dropped} itens descartados da fila offline`);
 }
 
 (async function init() {
@@ -693,4 +896,5 @@ async function syncOfflineSets() {
     navigator.serviceWorker.register("sw.js").catch(() => {});
   }
   await checkSession();
+  if (navigator.onLine) syncOfflineQueue();
 })();

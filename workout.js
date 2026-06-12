@@ -73,28 +73,51 @@ async function startWorkout(workoutId) {
   WO.startedAt = Date.now();
   WO.summary = null;
   
-  await loadPreviousLogs();
+  if (navigator.onLine) await loadPreviousLogs();
   
-  const { data: session, error } = await sb.from("workout_sessions").insert({
+  const sessionPayload = {
+    id: crypto.randomUUID(),
     user_id: APP.user.id,
     workout_id: wo.id,
     workout_name: wo.name,
     workout_sub: wo.sub,
     started_at: new Date().toISOString(),
     total_sets: wo.exercises.filter(e => !e.is_warmup && !e.is_mobility).reduce((a,e) => a + (e.sets || 0), 0)
-  }).select().single();
+  };
   
-  if (error) { console.error(error); showToast("Erro ao iniciar sessão", "error"); return; }
-  WO.session = session;
+  if (navigator.onLine) {
+    const { data: session, error } = await sb.from("workout_sessions").insert(sessionPayload).select().single();
+    if (error) { console.error(error); showToast("Erro ao iniciar sessão", "error"); return; }
+    WO.session = session;
+  } else {
+    // Offline: ID gerado no cliente, criação enfileirada para sincronizar depois
+    queueOffline({ table: "workout_sessions", op: "insert", payload: sessionPayload });
+    WO.session = sessionPayload;
+    showToast("Sem internet — treino será sincronizado depois", "warn");
+  }
   
   wo.exercises.forEach(ex => {
     if (!ex.is_warmup && !ex.is_mobility) {
-      WO.setLogs[ex.id] = Array.from({length: ex.sets || 0}, (_, i) => ({
+      const logs = Array.from({length: ex.sets || 0}, (_, i) => ({
         set_number: i + 1,
         weight: WO.previousLogs[ex.id]?.weight || "",
         reps: WO.previousLogs[ex.id]?.reps || ex.reps || "",
-        completed: false
+        completed: false,
+        is_drop: false
       }));
+      // Drop Set / Backoff: linha extra com carga reduzida sugerida
+      if (ex.method === "drop_set" || ex.method === "backoff") {
+        const lastW = parseFloat(WO.previousLogs[ex.id]?.weight) || 0;
+        const reduction = ex.method === "drop_set" ? 0.7 : 0.75; // -30% / -25%
+        logs.push({
+          set_number: logs.length + 1,
+          weight: lastW > 0 ? String(Math.round(lastW * reduction * 2) / 2) : "",
+          reps: "falha",
+          completed: false,
+          is_drop: true
+        });
+      }
+      WO.setLogs[ex.id] = logs;
     }
   });
   
@@ -112,7 +135,7 @@ async function loadPreviousLogs() {
   if (exerciseIds.length === 0) return;
   
   const { data, error } = await sb.from("set_logs")
-    .select("exercise_id, weight_kg, reps_done, set_number, completed_at")
+    .select("exercise_id, session_id, weight_kg, reps_done, set_number, completed_at, is_drop")
     .eq("user_id", APP.user.id)
     .eq("completed", true)
     .in("exercise_id", exerciseIds)
@@ -120,15 +143,56 @@ async function loadPreviousLogs() {
   
   if (error || !data) return;
   
+  // Para cada exercício: último set (compat), todos os sets da última sessão e máximo histórico
   data.forEach(log => {
     if (!WO.previousLogs[log.exercise_id]) {
       WO.previousLogs[log.exercise_id] = {
         weight: log.weight_kg,
         reps: log.reps_done,
-        set_number: log.set_number
+        set_number: log.set_number,
+        lastSessionId: log.session_id,
+        lastSessionSets: [],
+        maxWeight: 0
       };
     }
+    const prev = WO.previousLogs[log.exercise_id];
+    if (log.session_id === prev.lastSessionId && !log.is_drop) {
+      prev.lastSessionSets.push({ weight: parseFloat(log.weight_kg) || 0, reps: parseInt(log.reps_done) || 0 });
+    }
+    const w = parseFloat(log.weight_kg) || 0;
+    if (w > prev.maxWeight) prev.maxWeight = w;
   });
+}
+
+// ===========================================
+// DUPLA PROGRESSÃO - Sugestão de carga
+// ===========================================
+// Se na última sessão TODAS as séries atingiram o topo da faixa de reps,
+// sugere aumentar a carga (+2,5kg superior / +5kg inferior)
+
+const LOWER_BODY_MUSCLES = ["Quadríceps", "Isquiotibiais", "Glúteos", "Panturrilha"];
+
+function parseRepRange(repsStr) {
+  if (!repsStr) return null;
+  const m = String(repsStr).match(/(\d+)\s*(?:a|–|-|à)\s*(\d+)/i);
+  if (!m) return null;
+  return { min: parseInt(m[1]), max: parseInt(m[2]) };
+}
+
+function progressionHint(ex, prev) {
+  if (!prev || !prev.lastSessionSets || prev.lastSessionSets.length === 0) return null;
+  const range = parseRepRange(ex.reps) || parseRepRange(ex.instructions);
+  if (!range) return null;
+  
+  const sets = prev.lastSessionSets;
+  // Todas as séries da última sessão bateram o topo da faixa?
+  const allAtTop = sets.length >= (ex.sets || 1) - 1 && sets.every(s => s.reps >= range.max && s.weight > 0);
+  if (!allAtTop) return null;
+  
+  const isLower = (ex.muscles_primary || []).some(m => LOWER_BODY_MUSCLES.includes(m));
+  const inc = isLower ? 5 : 2.5;
+  const lastWeight = Math.max(...sets.map(s => s.weight));
+  return { newWeight: lastWeight + inc, inc };
 }
 
 async function finishWorkout() {
@@ -139,16 +203,44 @@ async function finishWorkout() {
   const durationMs = Date.now() - WO.startedAt;
   const durationMin = Math.max(1, Math.round(durationMs / 60000));
   
-  await sb.from("workout_sessions").update({
+  const updatePayload = {
     finished_at: new Date().toISOString(),
     duration_min: durationMin,
-    completed_sets: completedSets
-  }).eq("id", WO.session.id);
+    completed_sets: completedSets,
+    total_sets: totalSets  // recalculado: linhas de drop entram na conta
+  };
   
-  WO.summary = { duration: durationMin, completedSets: completedSets, totalSets: totalSets, name: WO.workout.name };
+  if (navigator.onLine) {
+    await sb.from("workout_sessions").update(updatePayload).eq("id", WO.session.id);
+  } else {
+    queueOffline({ table: "workout_sessions", op: "update", payload: updatePayload, match: { id: WO.session.id } });
+  }
+  
+  // Detectar PRs: maior carga da sessão vs máximo histórico
+  const prs = [];
+  WO.workout.exercises.forEach(ex => {
+    const sets = WO.setLogs[ex.id];
+    if (!sets) return;
+    const sessionMax = Math.max(0, ...sets.filter(s => s.completed && !s.is_drop).map(s => parseFloat(String(s.weight).replace(",", ".")) || 0));
+    const histMax = WO.previousLogs[ex.id]?.maxWeight || 0;
+    if (sessionMax > 0 && histMax > 0 && sessionMax > histMax) {
+      prs.push({ name: ex.name, weight: sessionMax, prev: histMax });
+    }
+  });
+  
+  WO.summary = {
+    duration: durationMin,
+    completedSets,
+    totalSets,
+    name: WO.workout.name,
+    sessionId: WO.session.id,
+    prs,
+    cardioSaved: false
+  };
   
   if (WO.sessionTimerId) clearInterval(WO.sessionTimerId);
   if (WO.restTimer?.intervalId) clearInterval(WO.restTimer.intervalId);
+  localStorage.removeItem("wmb_rest_timer");
   
   WO.workout = null;
   WO.session = null;
@@ -162,8 +254,17 @@ async function cancelWorkout() {
   if (!confirm("Cancelar treino? Os dados desta sessão serão perdidos.")) return;
   
   if (WO.session) {
-    await sb.from("workout_sessions").delete().eq("id", WO.session.id);
+    if (navigator.onLine) {
+      await sb.from("workout_sessions").delete().eq("id", WO.session.id);
+    }
+    // Remove da fila offline tudo relacionado a esta sessão (sets e a própria criação)
+    removeFromOfflineQueue(item =>
+      (item.payload?.session_id === WO.session.id) ||
+      (item.table === "workout_sessions" && item.payload?.id === WO.session.id) ||
+      (item.match?.id === WO.session.id)
+    );
   }
+  localStorage.removeItem("wmb_rest_timer");
   
   if (WO.sessionTimerId) clearInterval(WO.sessionTimerId);
   if (WO.restTimer?.intervalId) clearInterval(WO.restTimer.intervalId);
@@ -196,6 +297,7 @@ async function toggleSetCompleted(exerciseId, setIndex) {
   
   if (set.completed) {
     const logData = {
+      id: crypto.randomUUID(),
       session_id: WO.session.id,
       user_id: APP.user.id,
       exercise_id: exerciseId,
@@ -203,30 +305,113 @@ async function toggleSetCompleted(exerciseId, setIndex) {
       set_number: set.set_number,
       weight_kg: set.weight ? parseFloat(set.weight.toString().replace(',', '.')) : null,
       reps_done: set.reps || null,
+      is_drop: set.is_drop || false,
       completed: true,
       completed_at: set.completed_at
     };
+    set.log_id = logData.id;
 
     if (!navigator.onLine) {
-      const queue = JSON.parse(localStorage.getItem("wmb_offline_sets") || "[]");
-      queue.push(logData);
-      localStorage.setItem("wmb_offline_sets", JSON.stringify(queue));
+      queueOffline({ table: "set_logs", op: "insert", payload: logData });
       showToast("Salvo offline. Irá sincronizar quando houver internet.", "warn");
-      startRestTimer(exercise.rest || 60, exerciseId);
     } else {
-      const { data, error } = await sb.from("set_logs").insert(logData).select().single();
-      if (data) set.log_id = data.id;
-      if (error) console.error("Erro a guardar set:", error);
-      startRestTimer(exercise.rest || 60, exerciseId);
+      const { error } = await sb.from("set_logs").insert(logData);
+      if (error) {
+        console.error("Erro a guardar set:", error);
+        queueOffline({ table: "set_logs", op: "insert", payload: logData }); // fallback: tenta depois
+      }
     }
+    startRestTimer(exercise.rest || 60, exerciseId);
   } else {
     if (set.log_id) {
-      await sb.from("set_logs").delete().eq("id", set.log_id);
+      if (navigator.onLine) {
+        await sb.from("set_logs").delete().eq("id", set.log_id);
+      }
+      // Se estava na fila offline, basta remover de lá
+      removeFromOfflineQueue(item => item.payload?.id === set.log_id);
       delete set.log_id;
     }
   }
   
-  render();
+  // Exercício completo? Auto-colapsa e expande o próximo (render completo: teclado já não importa)
+  const allDone = sets.every(s => s.completed);
+  if (set.completed && allDone) {
+    WO.expanded.delete(exerciseId);
+    const mainExs = WO.workout.exercises.filter(e => !e.is_warmup && !e.is_mobility);
+    const next = mainExs.find(e => {
+      const l = WO.setLogs[e.id];
+      return l && !l.every(s => s.completed);
+    });
+    if (next) WO.expanded.add(next.id);
+    render();
+    // Scroll suave até o próximo exercício
+    if (next) setTimeout(() => {
+      document.getElementById(`exc-${next.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
+    return;
+  }
+  
+  // Caso normal: atualização cirúrgica do DOM — preserva foco e teclado aberto
+  updateAfterSetToggle(exerciseId, setIndex);
+}
+
+// ===========================================
+// RENDER PARCIAL - atualiza só o que mudou
+// ===========================================
+
+function updateAfterSetToggle(exerciseId, setIndex) {
+  const sets = WO.setLogs[exerciseId];
+  const set = sets[setIndex];
+  
+  // 1. Linha do set: classes, inputs disabled, botão ✓
+  const row = document.querySelector(`[data-act="toggleset"][data-eid="${exerciseId}"][data-idx="${setIndex}"]`)?.closest(".set-row");
+  if (row) {
+    row.classList.toggle("set-done", set.completed);
+    row.querySelectorAll(".set-input").forEach(inp => inp.disabled = set.completed);
+    const btn = row.querySelector(".set-check");
+    if (btn) { btn.classList.toggle("checked", set.completed); btn.textContent = set.completed ? "✓" : ""; }
+  }
+  
+  // 2. Anel de progresso do exercício
+  const card = document.getElementById(`exc-${exerciseId}`);
+  if (card) {
+    const doneCount = sets.filter(s => s.completed).length;
+    const totalCount = sets.length;
+    const allDone = doneCount === totalCount && totalCount > 0;
+    card.classList.toggle("ex-done", allDone);
+    const txt = card.querySelector(".ex-progress-text");
+    if (txt) txt.textContent = `${doneCount}/${totalCount}`;
+    const ring = card.querySelectorAll(".ex-progress-circle circle")[1];
+    if (ring) {
+      const circ = 2 * Math.PI * 15;
+      ring.setAttribute("stroke-dashoffset", circ * (1 - doneCount / Math.max(1, totalCount)));
+      ring.setAttribute("stroke", allDone ? "#00FF00" : WO.workout.color);
+    }
+  }
+  
+  // 3. Stats do header + barra de progresso + botão finalizar
+  updateWorkoutHeaderStats();
+}
+
+function updateWorkoutHeaderStats() {
+  const all = Object.values(WO.setLogs).flat();
+  const done = all.filter(s => s.completed).length;
+  const total = all.length;
+  const pct = total > 0 ? (done / total) * 100 : 0;
+  
+  const statValues = document.querySelectorAll(".workout-stats .ws-value");
+  if (statValues[1]) statValues[1].textContent = `${done}/${total}`;
+  if (statValues[2]) statValues[2].textContent = `${Math.round(pct)}%`;
+  
+  const fill = document.querySelector(".wpb-fill");
+  if (fill) fill.style.width = `${pct}%`;
+  
+  const finBtn = document.querySelector(".finish-btn");
+  if (finBtn) {
+    const ready = done === total && total > 0;
+    finBtn.classList.toggle("ready", ready);
+    finBtn.textContent = ready ? "🏆 FINALIZAR TREINO" : `Finalizar (${done}/${total})`;
+  }
 }
 
 function syncSetInputs(exerciseId) {
@@ -354,26 +539,82 @@ function updateSessionTimer() {
 
 function vSummary() {
   if (!WO.summary) return "";
+  const s = WO.summary;
+  
+  const prsHtml = s.prs && s.prs.length > 0 ? `
+    <div class="pr-block">
+      <div class="pr-title">🏆 NOVOS RECORDES PESSOAIS</div>
+      ${s.prs.map(pr => `
+        <div class="pr-row">
+          <div class="pr-name">${escapeHTML(pr.name)}</div>
+          <div class="pr-weight">${pr.weight}kg <span class="pr-prev">(antes: ${pr.prev}kg)</span></div>
+        </div>
+      `).join("")}
+    </div>
+  ` : "";
+  
+  const cardioHtml = s.cardioSaved ? `
+    <div class="cardio-saved">✓ Cardio registrado: ${s.cardioMin}min de ${escapeHTML(s.cardioType || "")}</div>
+  ` : `
+    <div class="cardio-block">
+      <div class="cardio-title">🏃 FEZ O CARDIO? (20–40min)</div>
+      <div class="cardio-form">
+        <input id="cardio-min" class="form-input" type="number" inputmode="numeric" placeholder="min" style="width:80px;text-align:center">
+        <select id="cardio-type" class="form-input" style="flex:1">
+          <option value="Esteira inclinada">Esteira inclinada</option>
+          <option value="Bike">Bike</option>
+          <option value="Escada">Escada</option>
+          <option value="Outro">Outro</option>
+        </select>
+        <button class="cardio-save-btn" data-act="savecardio">✓</button>
+      </div>
+    </div>
+  `;
+  
   return `
-    <div class="workout-screen" style="justify-content: center; align-items: center; text-align: center; padding: 40px 24px;">
-      <h1 style="font-size: 72px; margin-bottom: 16px;">🎉</h1>
-      <h2 class="wh-name" style="margin-bottom: 8px;">Treino Concluído!</h2>
-      <p style="color: var(--m); margin-bottom: 32px; font-size: 14px;">Bom trabalho no ${escapeHTML(WO.summary.name)}.</p>
+    <div class="workout-screen summary-screen">
+      <h1 class="summary-emoji">🎉</h1>
+      <h2 class="wh-name summary-title">Treino Concluído!</h2>
+      <p class="summary-sub">Bom trabalho no ${escapeHTML(s.name)}.</p>
       
-      <div class="hist-stats" style="margin-bottom: 40px; width: 100%; grid-template-columns: 1fr 1fr;">
+      <div class="hist-stats summary-stats">
         <div class="hs-card">
-          <div class="hs-value">${WO.summary.duration}</div>
+          <div class="hs-value">${s.duration}</div>
           <div class="hs-label">MINUTOS</div>
         </div>
         <div class="hs-card">
-          <div class="hs-value">${WO.summary.completedSets}/${WO.summary.totalSets}</div>
+          <div class="hs-value">${s.completedSets}/${s.totalSets}</div>
           <div class="hs-label">SÉRIES</div>
         </div>
       </div>
       
-      <button class="finish-btn ready" data-act="gohome">Voltar ao Início</button>
+      ${prsHtml}
+      ${cardioHtml}
+      
+      <button class="finish-btn ready" data-act="gohome" style="margin-top:20px">Voltar ao Início</button>
     </div>
   `;
+}
+
+async function saveCardio() {
+  if (!WO.summary) return;
+  const min = parseInt(document.getElementById("cardio-min")?.value);
+  const type = document.getElementById("cardio-type")?.value || null;
+  if (!min || min <= 0) { showToast("Informe os minutos de cardio", "warn"); return; }
+  
+  const payload = { cardio_min: min, cardio_type: type };
+  if (navigator.onLine) {
+    const { error } = await sb.from("workout_sessions").update(payload).eq("id", WO.summary.sessionId);
+    if (error) { console.error(error); showToast("Erro ao salvar cardio", "error"); return; }
+  } else {
+    queueOffline({ table: "workout_sessions", op: "update", payload, match: { id: WO.summary.sessionId } });
+  }
+  
+  WO.summary.cardioSaved = true;
+  WO.summary.cardioMin = min;
+  WO.summary.cardioType = type;
+  showToast("Cardio registrado! 🏃", "success");
+  render();
 }
 
 function vWorkoutExecution() {
@@ -430,18 +671,19 @@ function vWorkoutExecution() {
     const allDone = doneCount === totalCount && totalCount > 0;
     
     const prev = WO.previousLogs[ex.id];
+    const hint = progressionHint(ex, prev);
     
-    // Montando a URL do GIF baseada no nome do exercício e apontando para o Supabase
-    const gifUrl = `https://ebqmtvjieyvceckcegju.supabase.co/storage/v1/object/public/gifs/${encodeURIComponent(ex.name)}.gif`;
+    // GIF: prioriza gif_url do banco; fallback pro padrão por nome
+    const gifUrl = ex.gif_url || `https://ebqmtvjieyvceckcegju.supabase.co/storage/v1/object/public/gifs/${encodeURIComponent(ex.name)}.gif`;
     
     let setsTableHtml = "";
     if (isExpanded) {
       const rows = sets.map((set, i) => `
-        <div class="set-row ${set.completed ? "set-done" : ""}">
-          <div class="set-num">${set.set_number}</div>
-          <div class="set-prev">${prev ? `${prev.weight}kg × ${prev.reps || "-"}` : "—"}</div>
+        <div class="set-row ${set.completed ? "set-done" : ""} ${set.is_drop ? "set-drop" : ""}">
+          <div class="set-num">${set.is_drop ? "D" : set.set_number}</div>
+          <div class="set-prev">${set.is_drop ? "−30%" : (prev ? `${prev.weight}kg × ${prev.reps || "-"}` : "—")}</div>
           <input class="set-input" type="number" inputmode="decimal" placeholder="kg" value="${set.weight || ""}" data-w="${ex.id}-${i}" ${set.completed ? "disabled" : ""}>
-          <input class="set-input" type="number" inputmode="numeric" placeholder="reps" value="${set.reps || ""}" data-r="${ex.id}-${i}" ${set.completed ? "disabled" : ""}>
+          <input class="set-input" type="text" inputmode="numeric" placeholder="${set.is_drop ? "falha" : "reps"}" value="${set.reps || ""}" data-r="${ex.id}-${i}" ${set.completed ? "disabled" : ""}>
           <button class="set-check ${set.completed ? "checked" : ""}" data-act="toggleset" data-eid="${ex.id}" data-idx="${i}">${set.completed ? "✓" : ""}</button>
         </div>
       `).join("");
@@ -467,6 +709,7 @@ function vWorkoutExecution() {
           ${ex.instructions ? `<div class="ex-instructions"><div class="ex-inst-label">📋 Séries e métodos</div><div class="ex-inst-text">${escapeHTML(ex.instructions).replace(/\n/g, "<br>")}</div></div>` : ""}
           ${ex.method ? `<div class="ex-method">${methodBadge(ex.method)}</div>` : ""}
           ${prev ? `<div class="ex-previous">Última vez: <strong>${prev.weight}kg × ${prev.reps || "-"} reps</strong></div>` : ""}
+          ${hint ? `<div class="progression-hint">📈 Você fechou todas as séries no topo da faixa. <strong>Suba para ${hint.newWeight}kg</strong> (+${hint.inc}kg)</div>` : ""}
           <div class="sets-table">
             <div class="set-row set-header">
               <div class="set-num">Set</div>
@@ -482,7 +725,7 @@ function vWorkoutExecution() {
     }
     
     return `
-      <div class="ex-card ${allDone ? "ex-done" : ""}" style="--ex-color:${wo.color}">
+      <div class="ex-card ${allDone ? "ex-done" : ""}" id="exc-${ex.id}" style="--ex-color:${wo.color}">
         <div class="ex-header" data-act="toggleex" data-id="${ex.id}">
           <div class="ex-progress-circle">
             <svg viewBox="0 0 36 36" width="36" height="36">
@@ -659,5 +902,5 @@ function vVideoModal() {
 function getYouTubeEmbed(url) {
   const match = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([\w-]+)/);
   if (match) return `https://www.youtube.com/embed/${match[1]}`;
-  return url;
+  return ""; // URL não reconhecida como YouTube: não embeda (evita injeção via src)
 }
