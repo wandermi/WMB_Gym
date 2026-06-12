@@ -142,17 +142,37 @@ async function applyProtocol(protocolId) {
       workout_id: newWorkout.id,
       name: ex.name,
       sets: ex.sets,
-      reps: ex.reps,
+      reps: ex.reps != null ? String(ex.reps) : null,  // pode vir como string "8 a 10" ou int
       rest: ex.rest,
       instructions: ex.instructions || null,
       method: ex.method || null,
       is_warmup: ex.is_warmup || false,
       is_mobility: ex.is_mobility || false,
       steps: ex.steps || [],
+      muscles_primary: ex.muscles_primary || [],
+      muscles_secondary: ex.muscles_secondary || [],
+      gif_url: ex.gif_url || null,
+      video_url: ex.video_url || null,
       position: ex.position
     }));
     
     await sb.from("exercises").insert(exercisesToInsert);
+  }
+  
+  // Aplica schedule padrão do protocolo, se definido (dia_semana -> letra do treino)
+  if (protocol.schedule_default) {
+    await loadWorkouts(); // precisa dos IDs dos workouts recém-criados
+    const byLetter = {};
+    APP.workouts.forEach(w => { byLetter[w.letter] = w.id; });
+    const rows = [];
+    for (const [dow, letter] of Object.entries(protocol.schedule_default)) {
+      if (letter && byLetter[letter]) {
+        rows.push({ user_id: APP.user.id, day_of_week: parseInt(dow), workout_id: byLetter[letter], is_rest: false });
+      } else {
+        rows.push({ user_id: APP.user.id, day_of_week: parseInt(dow), workout_id: null, is_rest: true });
+      }
+    }
+    if (rows.length > 0) await sb.from("schedule").insert(rows);
   }
   
   // Atualiza as notas do protocolo
@@ -291,6 +311,14 @@ function vOnboarding() {
                 <div>
                   <div class="onb-option-title">Avançado Especialista (Prot. 5)</div>
                   <div class="onb-option-desc">Detalhamento. Treino ABCDEF.</div>
+                </div>
+              </label>
+
+              <label class="onb-option" style="border-color:var(--a)">
+                <input type="radio" name="level" value="protocolo_6">
+                <div>
+                  <div class="onb-option-title">PPL — Push/Pull/Legs (Prot. 6) ⭐</div>
+                  <div class="onb-option-desc">Hipertrofia. 6x/semana com quarta de descanso. Push (peito/ombro/tríceps) · Pull (costas/bíceps) · Legs (pernas/abdômen).</div>
                 </div>
               </label>
               

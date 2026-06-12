@@ -381,5 +381,125 @@ const PROTOCOLS_CATALOG = {
         ]
       }
     ]
+  },
+
+  "protocolo_6": {
+    id: "protocolo_6",
+    name: "PROTOCOLO 6 — PPL",
+    goal: "Hipertrofia (Push/Pull/Legs)",
+    level: "Intermediário",
+    cardio: "Cardio opcional 20-30min ao final do treino (esteira inclinada ou bike). Em dias de pernas, prefira esteira plana.",
+    notes: [
+      "Divisão: Seg/Sex = Push, Ter/Sáb = Pull, Qui/Dom = Legs, Qua = descanso total.",
+      "Trabalhe próximo à falha nas últimas séries (RIR 1-2). Não falhe na primeira série.",
+      "Faixas de reps são intencionais: respeite-as e suba carga quando bater o topo da faixa em todas as séries (dupla progressão).",
+      "Aqueça com 1-2 séries leves do primeiro exercício de cada grupo muscular antes das séries valendo."
+    ],
+    workouts: [
+      {
+        letter: "A", name: "Treino A", sub: "PUSH · Peito · Ombros · Tríceps", color: "#4A9EFF", icon: "💪", position: 0,
+        exercises: [
+          { name: "Supino Inclinado com Halteres", sets: 4, reps: "8 a 10", rest: 90, position: 0,
+            instructions: "4 séries de 8 a 10 reps — foco em peito superior",
+            muscles_primary: ["Peito"], muscles_secondary: ["Ombros", "Tríceps"],
+            steps: ["Banco inclinado 30-45°, halteres na altura do peito com punhos pronados.", "Empurre até quase estender os cotovelos, sem travar.", "Desça controlado até sentir alongamento no peito superior."] },
+          { name: "Supino Reto na Barra", sets: 3, reps: "8 a 12", rest: 90, position: 1,
+            instructions: "3 séries de 8 a 12 reps — foco em peito geral",
+            muscles_primary: ["Peito"], muscles_secondary: ["Tríceps", "Ombros"],
+            steps: ["Deite no banco, pegada um pouco mais aberta que os ombros, barra na linha do peito.", "Desça a barra controlado até tocar o peitoral.", "Empurre de volta sem travar os cotovelos no topo."] },
+          { name: "Crossover na Polia", sets: 3, reps: "12 a 15", rest: 60, position: 2,
+            instructions: "3 séries de 12 a 15 reps — isolador de peito",
+            muscles_primary: ["Peito"],
+            steps: ["Em pé entre as polias altas, leve inclinação do tronco à frente.", "Traga as mãos cruzando à frente do corpo na linha do umbigo.", "Volte controlado sentindo o alongamento do peito."] },
+          { name: "Desenvolvimento com Halteres", sets: 3, reps: "8 a 12", rest: 90, position: 3,
+            instructions: "3 séries de 8 a 12 reps — ombro anterior e médio",
+            muscles_primary: ["Ombros"], muscles_secondary: ["Tríceps"],
+            steps: ["Sentado, halteres na altura dos ombros com palmas pra frente.", "Empurre os halteres acima da cabeça sem travar os cotovelos.", "Desça controlado até a posição inicial."] },
+          { name: "Elevação Lateral na Polia ou Halter", sets: 4, reps: "12 a 15", rest: 60, position: 4,
+            instructions: "4 séries de 12 a 15 reps — largura do ombro",
+            muscles_primary: ["Ombros"],
+            steps: ["Halter em uma das mãos, leve flexão no cotovelo.", "Eleve o braço lateralmente até a altura do ombro.", "Desça lento, sem balanço."] },
+          { name: "Tríceps Polia Alta com Corda", sets: 3, reps: "10 a 12", rest: 60, position: 5,
+            instructions: "3 séries de 10 a 12 reps",
+            muscles_primary: ["Tríceps"],
+            steps: ["Em pé de frente para a polia, cotovelos colados ao tronco.", "Estenda os cotovelos abrindo as cordas no final do movimento.", "Volte controlado até formar 90° no cotovelo."] },
+          { name: "Tríceps Testa com Barra W", sets: 3, reps: "10 a 12", rest: 60, position: 6,
+            instructions: "3 séries de 10 a 12 reps",
+            muscles_primary: ["Tríceps"],
+            steps: ["Deitado no banco, segure a barra W com pegada estreita acima do peito.", "Desça flexionando apenas os cotovelos até a barra ficar próxima à testa.", "Estenda os cotovelos voltando à posição inicial."] }
+        ]
+      },
+      {
+        letter: "B", name: "Treino B", sub: "PULL · Costas · Bíceps · Post. Ombro", color: "#FF8F00", icon: "🦅", position: 1,
+        exercises: [
+          { name: "Puxada Alta Aberta no Pulley", sets: 4, reps: "10 a 12", rest: 90, position: 0,
+            instructions: "4 séries de 10 a 12 reps — largura das costas",
+            muscles_primary: ["Costas"], muscles_secondary: ["Bíceps"],
+            steps: ["Sentado, pegada aberta pronada na barra reta.", "Puxe a barra em direção à parte superior do peito, escápulas retraídas.", "Volte controlado até estender quase totalmente os braços."] },
+          { name: "Remada Curvada com Barra", sets: 3, reps: "8 a 10", rest: 90, position: 1,
+            instructions: "3 séries de 8 a 10 reps — espessura das costas",
+            muscles_primary: ["Costas"], muscles_secondary: ["Bíceps"],
+            steps: ["Em pé, tronco inclinado a ~45°, joelhos semiflexionados, barra pendurada.", "Puxe a barra em direção ao umbigo levando os cotovelos para trás.", "Desça controlado mantendo a coluna neutra."] },
+          { name: "Remada Unilateral com Halter (Serrote)", sets: 3, reps: "10 a 12", rest: 60, position: 2,
+            instructions: "3 séries de 10 a 12 reps por lado",
+            muscles_primary: ["Costas"], muscles_secondary: ["Bíceps"],
+            steps: ["Apoie um joelho e uma mão no banco, halter na outra mão pendurado.", "Puxe o halter próximo ao quadril levando o cotovelo para trás.", "Desça lento controlando o peso até estender o braço."] },
+          { name: "Crucifixo Invertido com Halteres", sets: 4, reps: "12 a 15", rest: 60, position: 3,
+            instructions: "4 séries de 12 a 15 reps — posterior de ombro",
+            muscles_primary: ["Ombros"], muscles_secondary: ["Costas"],
+            steps: ["Tronco inclinado à frente, halteres pendurados com leve flexão de cotovelo.", "Abra os braços lateralmente até a altura dos ombros, escápulas se aproximando.", "Desça controlado sem balanço."] },
+          { name: "Rosca Direta com Barra W", sets: 3, reps: "10 a 12", rest: 60, position: 4,
+            instructions: "3 séries de 10 a 12 reps — bíceps geral",
+            muscles_primary: ["Bíceps"],
+            steps: ["Em pé, pegada na barra W com palmas pra cima, cotovelos colados ao tronco.", "Flexione os cotovelos subindo a barra até a altura dos ombros.", "Desça controlado até estender quase totalmente os braços."] },
+          { name: "Rosca Alternada no Banco Inclinado", sets: 3, reps: "10 a 12", rest: 60, position: 5,
+            instructions: "3 séries de 10 a 12 reps por braço — cabeça longa do bíceps",
+            muscles_primary: ["Bíceps"],
+            steps: ["Sentado em banco inclinado, braços pendurados ao lado do corpo.", "Flexione um cotovelo girando o punho para supinação no caminho.", "Desça controlado e alterne o lado."] },
+          { name: "Rosca Martelo com Halteres", sets: 3, reps: "12", rest: 60, position: 6,
+            instructions: "3 séries de 12 reps — braquial e antebraço",
+            muscles_primary: ["Bíceps"],
+            steps: ["Em pé, halteres ao lado do corpo com palmas voltadas para dentro (pegada neutra).", "Flexione os cotovelos mantendo a pegada neutra durante todo movimento.", "Desça controlado sem balanço do tronco."] }
+        ]
+      },
+      {
+        letter: "C", name: "Treino C", sub: "LEGS · Pernas e Abdômen", color: "#00FF00", icon: "🍗", position: 2,
+        exercises: [
+          { name: "Agachamento Livre ou no Smith", sets: 4, reps: "8 a 10", rest: 120, position: 0,
+            instructions: "4 séries de 8 a 10 reps — quadríceps e glúteos",
+            muscles_primary: ["Quadríceps", "Glúteos"], muscles_secondary: ["Isquiotibiais"],
+            steps: ["Barra apoiada nos trapézios, pés na largura dos ombros, pontas levemente abertas.", "Desça empurrando o quadril para trás até as coxas ficarem paralelas ao chão.", "Suba empurrando o chão, sem travar os joelhos no topo."] },
+          { name: "Leg Press 45°", sets: 4, reps: "10 a 12", rest: 90, position: 1,
+            instructions: "4 séries de 10 a 12 reps — coxas gerais",
+            muscles_primary: ["Quadríceps", "Glúteos"], muscles_secondary: ["Isquiotibiais"],
+            steps: ["Sentado no leg press com pés afastados na largura dos ombros, joelhos alinhados aos pés.", "Desça o peso flexionando joelhos até ~90°, sem perder o contato lombar.", "Empurre de volta sem travar os joelhos no topo."] },
+          { name: "Cadeira Extensora", sets: 3, reps: "12 a 15", rest: 60, position: 2,
+            instructions: "3 séries de 12 a 15 reps — isolador de quadríceps",
+            muscles_primary: ["Quadríceps"],
+            steps: ["Sentado, ajuste o encosto e o apoio dos tornozelos.", "Estenda os joelhos totalmente fazendo a contração no topo.", "Desça controlado sem deixar o peso bater."] },
+          { name: "Stiff com Halteres ou Barra", sets: 3, reps: "10 a 12", rest: 90, position: 3,
+            instructions: "3 séries de 10 a 12 reps — posterior e glúteos",
+            muscles_primary: ["Isquiotibiais", "Glúteos"],
+            steps: ["Em pé, halteres ou barra à frente do corpo, joelhos levemente flexionados.", "Empurre o quadril para trás descendo o peso pela frente das pernas.", "Suba contraindo glúteos e posterior, sem hiperextender a lombar."] },
+          { name: "Cadeira ou Mesa Flexora", sets: 4, reps: "10 a 12", rest: 60, position: 4,
+            instructions: "4 séries de 10 a 12 reps — isolador de posterior",
+            muscles_primary: ["Isquiotibiais"],
+            steps: ["Ajuste o apoio na altura dos tornozelos (na flexora deitada, no calcanhar).", "Flexione os joelhos puxando o peso até o final do movimento.", "Desça controlado sem deixar o peso bater nas placas."] },
+          { name: "Panturrilha em Pé na Máquina", sets: 4, reps: "15 a 20", rest: 60, position: 5,
+            instructions: "4 séries de 15 a 20 reps",
+            muscles_primary: ["Panturrilha"],
+            steps: ["Em pé na máquina, pontas dos pés na plataforma com calcanhares no ar.", "Suba na ponta dos pés fazendo a contração máxima no topo.", "Desça controlado alongando a panturrilha no final."] },
+          { name: "Abdominal Infra (Elevação de Pernas)", sets: 3, reps: "15", rest: 60, position: 6,
+            instructions: "3 séries de 15 reps — abdômen inferior",
+            muscles_primary: ["Abdômen"],
+            steps: ["Pendurado na barra fixa ou apoiado no banco romano, pernas estendidas para baixo.", "Eleve as pernas mantendo joelhos retos ou levemente flexionados até 90°.", "Desça controlado sem usar balanço."] },
+          { name: "Abdominal Supra (Crunch)", sets: 3, reps: "15", rest: 60, position: 7,
+            instructions: "3 séries de 15 reps — abdômen superior",
+            muscles_primary: ["Abdômen"],
+            steps: ["Deitado de costas, joelhos flexionados, mãos ao lado da cabeça (sem puxar o pescoço).", "Eleve o tronco contraindo o abdômen até a escápula sair do chão.", "Desça controlado sem deitar totalmente."] }
+        ]
+      }
+    ],
+    schedule_default: { 0: "C", 1: "A", 2: "B", 3: null, 4: "C", 5: "A", 6: "B" }
   }
 };
