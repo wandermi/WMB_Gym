@@ -492,6 +492,22 @@ body:has(.install-banner) .workout-header{padding-top:16px}
 .onb-option-title{font-weight:bold;color:var(--text)}
 .onb-option-desc{font-size:11px;color:var(--m)}
 
+
+/* ── WEEK STRIP (agenda semanal na home) ── */
+.week-strip{margin-bottom:14px}
+.ws-title{font-size:10px;letter-spacing:.14em;color:var(--m);font-weight:700;margin-bottom:8px;padding-left:2px}
+.ws-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.ws-cell{background:var(--card);border:1px solid var(--b);border-radius:10px;padding:8px 4px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px;position:relative;cursor:pointer;transition:transform .12s,border-color .15s;min-height:62px;justify-content:center}
+.ws-cell:active{transform:scale(.94)}
+.ws-cell:not([data-act]){cursor:default}
+.ws-dow{font-size:10px;letter-spacing:.08em;color:var(--m);font-weight:700}
+.ws-letter{font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1;color:var(--cc);font-weight:700}
+.ws-rest .ws-letter{font-size:16px;color:#555}
+.ws-rest{background:rgba(255,255,255,.02);border-color:rgba(255,255,255,.04)}
+.ws-today{border-color:var(--cc);background:linear-gradient(180deg,rgba(255,255,255,.04),transparent);box-shadow:0 0 0 1px var(--cc) inset, 0 0 12px -4px var(--cc)}
+.ws-today .ws-dow{color:var(--cc)}
+.ws-dot{position:absolute;bottom:5px;width:5px;height:5px;border-radius:50%;background:var(--cc)}
+
 </style>
 </head>
 <body>

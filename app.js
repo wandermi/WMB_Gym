@@ -375,6 +375,36 @@ function vHome() {
     </div>
   ` : "";
   
+  // ─── BARRA SEMANAL: Dom..Sáb com o treino de cada dia, HOJE destacado ───
+  const dayLabels = ["D", "S", "T", "Q", "Q", "S", "S"];
+  const dayFull = ["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"];
+  const weekStrip = (() => {
+    const cells = dayLabels.map((dl, dow) => {
+      const isToday = dow === today;
+      const sched = SETT.schedule?.[dow];
+      let letter = "—", color = "#444", isRest = false, wid = null;
+      if (sched === "rest") { letter = "⏸"; color = "#666"; isRest = true; }
+      else if (sched) {
+        const w = APP.workouts.find(x => x.id === sched);
+        if (w) { letter = w.letter || "?"; color = w.color || "#888"; wid = w.id; }
+      }
+      const click = wid ? `data-act="openworkout" data-id="${wid}"` : "";
+      return `
+        <div class="ws-cell ${isToday ? "ws-today" : ""} ${isRest ? "ws-rest" : ""}" ${click} title="${dayFull[dow]}" style="--cc:${color}">
+          <div class="ws-dow">${dl}</div>
+          <div class="ws-letter">${letter}</div>
+          ${isToday ? `<div class="ws-dot"></div>` : ""}
+        </div>
+      `;
+    }).join("");
+    return `
+      <div class="week-strip">
+        <div class="ws-title">SEMANA</div>
+        <div class="ws-grid">${cells}</div>
+      </div>
+    `;
+  })();
+  
   const workoutCards = APP.workouts.map(w => {
     const exCount = w.exercises?.length || 0;
     const setsCount = w.exercises?.reduce((a, e) => a + (e.sets || 0), 0) || 0;
@@ -411,6 +441,8 @@ function vHome() {
       </header>
       
       ${todayCard}
+      
+      ${weekStrip}
       
       <div class="protocol-badge">
         <div class="pb-icon">🏆</div>
