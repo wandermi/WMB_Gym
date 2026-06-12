@@ -15,9 +15,9 @@ async function loadProfileData() {
 
 async function saveProfile() {
   if (PROF.loading) return;
-  PROF.loading = true;
-  render();
   
+  // CRÍTICO: ler os inputs ANTES de qualquer render().
+  // O render() reconstrói o DOM e descarta o que o usuário digitou.
   const f = {
     name: $("#prof-name")?.value?.trim() || null,
     age: parseInt($("#prof-age")?.value) || null,
@@ -28,22 +28,32 @@ async function saveProfile() {
     notes: $("#prof-notes")?.value?.trim() || null,
   };
   
-  const { error } = await sb.from("profiles")
-    .update({ ...f, updated_at: new Date().toISOString() })
-    .eq("id", APP.user.id);
+  PROF.form = { ...PROF.form, ...f }; // preserva os valores digitados se o render rodar
+  PROF.loading = true;
+  render();
+  
+  console.log("[Profile] Salvando:", f, "user:", APP.user.id);
+  
+  // upsert: cria a linha se o trigger falhou no cadastro; atualiza se existe.
+  // .select().single() confirma a escrita de verdade (update sem select reporta sucesso mesmo com 0 linhas)
+  const { data, error } = await sb.from("profiles")
+    .upsert({ id: APP.user.id, ...f, updated_at: new Date().toISOString() }, { onConflict: "id" })
+    .select()
+    .single();
   
   PROF.loading = false;
   
   if (error) {
-    console.error(error);
-    showToast("Erro ao salvar perfil: " + error.message, "error");
+    console.error("[Profile] Erro:", error);
+    showToast(`Erro ao salvar (${error.code || "?"}): ${error.message}`, "error");
     render();
     return;
   }
   
-  APP.profile = { ...APP.profile, ...f };
+  console.log("[Profile] Confirmado no banco:", data);
+  APP.profile = data;
   PROF.editing = false;
-  showToast("Perfil atualizado!", "success");
+  showToast("✓ Perfil salvo!", "success");
   render();
 }
 
