@@ -136,7 +136,7 @@ async function applyProtocol(protocolId) {
         goal: protocol.goal
       }).select().single();
     
-    if (wkError) continue;
+    if (wkError) { console.error("[applyProtocol] Erro criando workout:", workout.name, wkError); continue; }
     
     const exercisesToInsert = workout.exercises.map(ex => ({
       workout_id: newWorkout.id,
@@ -156,7 +156,11 @@ async function applyProtocol(protocolId) {
       position: ex.position
     }));
     
-    await sb.from("exercises").insert(exercisesToInsert);
+    const { error: exError } = await sb.from("exercises").insert(exercisesToInsert);
+    if (exError) {
+      console.error("[applyProtocol] Erro criando exercícios de", workout.name, exError);
+      showToast(`Erro nos exercícios de ${workout.name}: ${exError.message}`, "error");
+    }
   }
   
   // Aplica schedule padrão do protocolo, se definido (dia_semana -> letra do treino)
