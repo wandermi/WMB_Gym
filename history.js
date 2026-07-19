@@ -386,7 +386,7 @@ function renderSessionCard(s) {
 }
 
 function vProgress() {
-  const hasExercises = HIST.exerciseList.length > 0;
+  const hasExercises = HIST.exerciseList.length > 0 || HIST.muscleData;
   
   return `
     <div class="progress-screen">
@@ -406,6 +406,7 @@ function vProgress() {
         </div>
       ` : `
         <div class="progress-body">
+          ${vMuscleMap()}
           ${HIST.bodyLogs.length >= 2 ? `
             <div class="chart-card" style="margin-bottom:16px">
               <div class="chart-title">⚖️ PESO CORPORAL</div>
@@ -579,4 +580,162 @@ async function renderBodyChart() {
       }
     }
   });
+}
+
+
+// ===========================================
+// MAPA MUSCULAR - distribuição de volume por músculo
+// Calcula a partir do histórico real (set_logs), mapeando exercício→músculos
+// pelo catálogo de protocolos (sobrevive a troca de protocolo)
+// ===========================================
+
+HIST.muscleData = null;
+
+// Mapa nome-do-exercício → {primary:[], secondary:[]} construído do catálogo inteiro
+let EXERCISE_MUSCLE_MAP = null;
+function buildExerciseMuscleMap() {
+  if (EXERCISE_MUSCLE_MAP) return EXERCISE_MUSCLE_MAP;
+  EXERCISE_MUSCLE_MAP = {};
+  try {
+    Object.values(PROTOCOLS_CATALOG).forEach(proto => {
+      (proto.workouts || []).forEach(w => {
+        (w.exercises || []).forEach(ex => {
+          const key = normalizeExName(ex.name);
+          if (!EXERCISE_MUSCLE_MAP[key]) {
+            EXERCISE_MUSCLE_MAP[key] = {
+              primary: ex.muscles_primary || [],
+              secondary: ex.muscles_secondary || []
+            };
+          }
+        });
+      });
+    });
+  } catch (e) { console.warn("[MuscleMap] catálogo indisponível", e); }
+  return EXERCISE_MUSCLE_MAP;
+}
+
+function normalizeExName(name) {
+  return (name || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+}
+
+// Agrupa os músculos internos nas categorias exibidas no mapa
+const MUSCLE_GROUPS = {
+  "Costas": "Costas",
+  "Peito": "Peitoral",
+  "Ombros": "Ombros",
+  "Trapézio": "Trapézio",
+  "Tríceps": "Tríceps",
+  "Bíceps": "Bíceps",
+  "Antebraço": "Antebraço",
+  "Abdômen": "Abdômen",
+  "Glúteos": "Glúteo",
+  "Quadríceps": "Pernas",
+  "Isquiotibiais": "Pernas",
+  "Panturrilha": "Panturrilha"
+};
+
+async function loadMuscleMap() {
+  buildExerciseMuscleMap();
+
+  // Puxa todos os sets concluídos (nome do exercício + se é drop)
+  const { data: sets, error } = await sb.from("set_logs")
+    .select("exercise_name, is_drop")
+    .eq("user_id", APP.user.id)
+    .eq("completed", true)
+    .limit(5000);
+
+  // Sessões com cardio (para o "Aeróbico")
+  const { data: sessions } = await sb.from("workout_sessions")
+    .select("cardio_min")
+    .eq("user_id", APP.user.id)
+    .not("finished_at", "is", null)
+    .limit(2000);
+
+  if (error || !sets || sets.length === 0) { HIST.muscleData = null; return; }
+
+  // Pontos por músculo: primário = 1.0, secundário = 0.5, drop não conta (evita inflar)
+  const points = {};
+  let totalPoints = 0;
+  sets.forEach(s => {
+    if (s.is_drop) return;
+    const m = EXERCISE_MUSCLE_MAP[normalizeExName(s.exercise_name)];
+    if (!m) return;
+    (m.primary || []).forEach(mus => {
+      const g = MUSCLE_GROUPS[mus]; if (!g) return;
+      points[g] = (points[g] || 0) + 1.0; totalPoints += 1.0;
+    });
+    (m.secondary || []).forEach(mus => {
+      const g = MUSCLE_GROUPS[mus]; if (!g) return;
+      points[g] = (points[g] || 0) + 0.5; totalPoints += 0.5;
+    });
+  });
+
+  const pct = {};
+  Object.keys(points).forEach(g => { pct[g] = totalPoints > 0 ? Math.round((points[g] / totalPoints) * 100) : 0; });
+
+  // Aeróbico: % de sessões que tiveram cardio registrado
+  let aerobico = 0;
+  if (sessions && sessions.length > 0) {
+    const withCardio = sessions.filter(s => s.cardio_min && s.cardio_min > 0).length;
+    aerobico = Math.round((withCardio / sessions.length) * 100);
+  }
+
+  HIST.muscleData = { pct, aerobico, totalSets: sets.length };
+}
+
+function vMuscleMap() {
+  if (!HIST.muscleData) return "";
+  const { pct, aerobico } = HIST.muscleData;
+  const g = (name) => pct[name] || 0;
+
+  // Colunas conforme o layout de referência
+  const left = [
+    ["Costas", g("Costas")], ["Peitoral", g("Peitoral")], ["Tríceps", g("Tríceps")],
+    ["Bíceps", g("Bíceps")], ["Abdômen", g("Abdômen")], ["Glúteo", g("Glúteo")]
+  ];
+  const right = [
+    ["Trapézio", g("Trapézio")], ["Ombros", g("Ombros")], ["Aeróbico", aerobico],
+    ["Antebraço", g("Antebraço")], ["Pernas", g("Pernas")], ["Panturrilha", g("Panturrilha")]
+  ];
+
+  const badge = (label, val) => `
+    <div class="mm-item">
+      <div class="mm-badge ${val === 0 ? "mm-zero" : ""}">${val}%</div>
+      <div class="mm-label">${label}</div>
+    </div>`;
+
+  return `
+    <div class="chart-card muscle-map-card" style="margin-bottom:16px">
+      <div class="chart-title">🧍 VOLUME POR MÚSCULO</div>
+      <div class="mm-grid">
+        <div class="mm-col">${left.map(([l, v]) => badge(l, v)).join("")}</div>
+        <div class="mm-figure">${bodySilhouetteSVG()}</div>
+        <div class="mm-col">${right.map(([l, v]) => badge(l, v)).join("")}</div>
+      </div>
+      <div class="mm-foot">Distribuição do volume de séries no seu histórico (${HIST.muscleData.totalSets} séries). Primário conta cheio, auxiliar conta metade.</div>
+    </div>`;
+}
+
+function bodySilhouetteSVG() {
+  return `
+    <svg viewBox="0 0 120 300" class="mm-body" aria-hidden="true">
+      <g fill="#2A3A2A" stroke="#00FF0022" stroke-width="1">
+        <circle cx="60" cy="26" r="16"/>
+        <rect x="46" y="44" width="28" height="10" rx="4"/>
+        <path d="M40 56 Q60 50 80 56 L86 120 Q60 128 34 120 Z"/>
+        <path d="M34 60 Q22 64 20 110 L28 112 Q34 78 40 72 Z"/>
+        <path d="M86 60 Q98 64 100 110 L92 112 Q86 78 80 72 Z"/>
+        <path d="M20 110 Q17 140 22 165 L30 163 Q28 138 28 112 Z"/>
+        <path d="M100 110 Q103 140 98 165 L90 163 Q92 138 92 112 Z"/>
+        <path d="M38 122 Q60 130 82 122 L80 200 Q70 205 62 205 L58 205 Q50 205 40 200 Z"/>
+        <path d="M42 200 Q50 210 52 260 L46 290 L38 290 L36 258 Q34 220 40 202 Z"/>
+        <path d="M78 200 Q70 210 68 260 L74 290 L82 290 L84 258 Q86 220 80 202 Z"/>
+      </g>
+      <g class="mm-glow">
+        <circle cx="60" cy="70" r="4"/><circle cx="30" cy="66" r="3.5"/><circle cx="90" cy="66" r="3.5"/>
+        <circle cx="60" cy="100" r="4"/><circle cx="24" cy="130" r="3"/><circle cx="96" cy="130" r="3"/>
+        <circle cx="60" cy="150" r="4"/><circle cx="50" cy="230" r="3.5"/><circle cx="70" cy="230" r="3.5"/>
+        <circle cx="60" cy="52" r="3"/>
+      </g>
+    </svg>`;
 }

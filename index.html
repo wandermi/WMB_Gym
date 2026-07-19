@@ -508,6 +508,22 @@ body:has(.install-banner) .workout-header{padding-top:16px}
 .ws-today .ws-dow{color:var(--cc)}
 .ws-dot{position:absolute;bottom:5px;width:5px;height:5px;border-radius:50%;background:var(--cc)}
 
+
+/* ── MAPA MUSCULAR ── */
+.muscle-map-card{overflow:hidden}
+.mm-grid{display:grid;grid-template-columns:1fr auto 1fr;gap:6px;align-items:center;margin-top:8px}
+.mm-col{display:flex;flex-direction:column;gap:14px}
+.mm-item{display:flex;flex-direction:column;align-items:flex-start;gap:2px}
+.mm-col:last-child .mm-item{align-items:flex-end}
+.mm-badge{background:var(--a);color:#000;font-family:'Bebas Neue',sans-serif;font-size:18px;line-height:1;padding:6px 10px;border-radius:8px;font-weight:700;min-width:44px;text-align:center;box-shadow:0 0 12px -4px var(--a)}
+.mm-badge.mm-zero{background:#2A2A2A;color:#666;box-shadow:none}
+.mm-label{font-size:11px;color:var(--text-soft);font-weight:600}
+.mm-figure{width:96px;display:flex;justify-content:center}
+.mm-body{width:96px;height:auto}
+.mm-glow circle{fill:#00FF00;opacity:.85;filter:drop-shadow(0 0 4px #00FF00)}
+.mm-foot{font-size:10px;color:var(--m);margin-top:12px;line-height:1.5;text-align:center}
+@media (max-width:360px){.mm-figure,.mm-body{width:72px}.mm-badge{font-size:16px;min-width:40px;padding:5px 8px}.mm-label{font-size:10px}}
+
 </style>
 </head>
 <body>

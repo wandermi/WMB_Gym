@@ -318,11 +318,19 @@ function vOnboarding() {
                 </div>
               </label>
 
-              <label class="onb-option" style="border-color:var(--a)">
+              <label class="onb-option">
                 <input type="radio" name="level" value="protocolo_6">
                 <div>
-                  <div class="onb-option-title">PPL — Push/Pull/Legs (Prot. 6) ⭐</div>
-                  <div class="onb-option-desc">Hipertrofia. 6x/semana com quarta de descanso. Push (peito/ombro/tríceps) · Pull (costas/bíceps) · Legs (pernas/abdômen).</div>
+                  <div class="onb-option-title">PPL — Push/Pull/Legs (Prot. 6)</div>
+                  <div class="onb-option-desc">Hipertrofia. 6x/semana com quarta de descanso.</div>
+                </div>
+              </label>
+
+              <label class="onb-option" style="border-color:var(--a)">
+                <input type="radio" name="level" value="protocolo_7">
+                <div>
+                  <div class="onb-option-title">PPLUL — LD Consultoria (Prot. 7) ⭐</div>
+                  <div class="onb-option-desc">5 dias (Seg-Sex): Push · Pull · Legs · Upper · Lower. Cada músculo 2x/semana, com séries CLUSTER. Fim de semana livre.</div>
                 </div>
               </label>
               
@@ -675,7 +683,7 @@ document.addEventListener("click", async (e) => {
     HIST.progressExercise = null;
     HIST.progressData = [];
     render();
-    await Promise.all([loadExerciseList(), loadBodyLogs()]);
+    await Promise.all([loadExerciseList(), loadBodyLogs(), loadMuscleMap()]);
     render();
   } else if (act === "setfilter") {
     HIST.filter = el.dataset.id;
