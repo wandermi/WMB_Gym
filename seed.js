@@ -499,8 +499,7 @@ const PROTOCOLS_CATALOG = {
             steps: ["Deitado de costas, joelhos flexionados, mãos ao lado da cabeça (sem puxar o pescoço).", "Eleve o tronco contraindo o abdômen até a escápula sair do chão.", "Desça controlado sem deitar totalmente."] }
         ]
       }
-    ],
-    schedule_default: { 0: "C", 1: "A", 2: "B", 3: null, 4: "C", 5: "A", 6: "B" }
+    ]
   },
 
   "protocolo_7": {
@@ -658,7 +657,92 @@ const PROTOCOLS_CATALOG = {
             steps: ["Pendurado na barra fixa, corpo estável.","Eleve as pernas até ~90° contraindo o abdômen inferior.","Desça controlado sem impulso."] }
         ]
       }
+    ]
+  },
+
+  "protocolo_8": {
+    id: "protocolo_8",
+    name: "PROTOCOLO 8 — Lower Focus Feminino",
+    goal: "Hipertrofia de glúteo/coxa + definição abdominal",
+    level: "Intermediário",
+    cardio: "CrossFit 2-3x/semana (fora deste protocolo). Na musculação, foco 100% nas pernas — sem cardio adicional.",
+    notes: [
+      "Divisão: Seg=Pernas Pesadas, Qua=Pernas Volume, Sex=Pernas Definição+Core. Ter/Qui=CrossFit.",
+      "Hipertrofia de glúteo exige: (1) compostos pesados (agachamento, leg press, hip thrust), (2) isoladores de glúteo (glute bridge, abdução), (3) volume consistente.",
+      "Definição abdominal: faça abdômen pesado (volume), coma em déficit calórico leve. O treino cria o músculo; a nutrição tira a gordura.",
+      "Dupla progressão: bateu o topo em todas as séries? Suba a carga na próxima sessão.",
+      "Repouso: com CrossFit 2-3x/semana, durma bem e coma bastante. O músculo cresce no descanso."
     ],
-    schedule_default: { 0: null, 1: "A", 2: "B", 3: "C", 4: "D", 5: "E", 6: null }
+    workouts: [
+      {
+        letter: "A", name: "Pernas Pesadas", sub: "Glúteo · Coxa · Compostos", color: "#FF4A6E", icon: "💪", position: 0,
+        exercises: [
+          { name: "Agachamento Livre", sets: 4, reps: "6 a 8", rest: 120, position: 0, method: null,
+            instructions: "4x6-8 — composto pesado, glúteo + quadríceps", muscles_primary: ["Quadríceps","Glúteos"], muscles_secondary: ["Isquiotibiais"],
+            steps: ["Pés na largura dos ombros, barra nos trapézios, peito estufado.","Desça empurrando o quadril pra trás até coxas paralelas ao chão.","Suba empurrando o chão, sem travar os joelhos. Controle total."] },
+          { name: "Leg Press 45°", sets: 4, reps: "8 a 10", rest: 90, position: 1, method: null,
+            instructions: "4x8-10 — composto seguro, máximo glúteo", muscles_primary: ["Glúteos","Quadríceps"], muscles_secondary: ["Isquiotibiais"],
+            steps: ["Pés na plataforma largura dos ombros, joelhos alinhados aos pés.","Desça até ~90° sem descolar a lombar do apoio.","Empurre sem travar os joelhos no topo, sentindo o glúteo trabalhando."] },
+          { name: "Hip Thrust com Barra", sets: 3, reps: "8 a 10", rest: 90, position: 2, method: null,
+            instructions: "3x8-10 — isolador de glúteo, a estrela", muscles_primary: ["Glúteos"], muscles_secondary: ["Isquiotibiais"],
+            steps: ["Costas apoiadas no banco, barra sobre o quadril, pés no chão na frente.","Suba o quadril até o tronco ficar paralelo ao chão, contraindo o glúteo.","Desça controlado, sempre mantendo tensão no glúteo — não descansa embaixo."] },
+          { name: "Cadeira Extensora", sets: 3, reps: "12 a 15", rest: 60, position: 3, method: null,
+            instructions: "3x12-15 — isolador de quadríceps", muscles_primary: ["Quadríceps"], muscles_secondary: [],
+            steps: ["Ajuste o encosto e o apoio nos tornozelos.","Estenda os joelhos em movimento controlado, contração máxima no topo.","Desça sem deixar o peso bater — sempre com tensão."] },
+          { name: "Panturrilha em Pé", sets: 3, reps: "15 a 20", rest: 60, position: 4, method: null,
+            instructions: "3x15-20 — panturrilha (complemento)", muscles_primary: ["Panturrilha"], muscles_secondary: [],
+            steps: ["Pontas dos pés na plataforma, calcanhares no ar.","Suba na ponta dos pés com contração máxima.","Desça alongando a panturrilha — sempre com movimento completo."] }
+        ]
+      },
+      {
+        letter: "B", name: "Pernas Volume", sub: "Glúteo · Isoladores · Abdômen", color: "#FF8F00", icon: "🍑", position: 1,
+        exercises: [
+          { name: "Agachamento no Smith", sets: 4, reps: "8 a 10", rest: 90, position: 0, method: null,
+            instructions: "4x8-10 — composto variado, foco glúteo", muscles_primary: ["Glúteos","Quadríceps"], muscles_secondary: ["Isquiotibiais"],
+            steps: ["Barra no Smith na altura dos ombros, pés levemente à frente (mais ereto que livre).","Desça até as coxas ficarem paralelas, controlado.","Suba com força, sentindo o glúteo o tempo todo."] },
+          { name: "Leg Press Plataforma Angulada", sets: 3, reps: "10 a 12", rest: 90, position: 1, method: null,
+            instructions: "3x10-12 — ângulo diferente, mais glúteo", muscles_primary: ["Glúteos","Quadríceps"], muscles_secondary: [],
+            steps: ["Pés posicionados mais altos/atrás na plataforma para ativar mais o glúteo.","Desça controlado.","Empurre com o glúteo em mente, não só com as pernas."] },
+          { name: "Glute Bridge com Peso", sets: 4, reps: "10 a 12", rest: 60, position: 2, method: null,
+            instructions: "4x10-12 — isolador de glúteo puro", muscles_primary: ["Glúteos"], muscles_secondary: [],
+            steps: ["Deitada de costas, joelhos flexionados, disco/halter sobre o quadril.","Eleve o quadril até o corpo ficar paralelo, apertando o glúteo no topo.","Desça controlado — a trajetória é curta, mas a contração é máxima."] },
+          { name: "Cadeira Abdutora", sets: 3, reps: "12 a 15", rest: 60, position: 3, method: null,
+            instructions: "3x12-15 — glúteo médio (largura)", muscles_primary: ["Glúteos"], muscles_secondary: [],
+            steps: ["Sentada na máquina, joelhos contra os apoios.","Abra as pernas em movimento controlado, contraindo o glúteo.","Volte ao centro — sem bater — e repita."] },
+          { name: "Mesa Flexora", sets: 3, reps: "12 a 15", rest: 60, position: 4, method: null,
+            instructions: "3x12-15 — posterior de coxa (definição)", muscles_primary: ["Isquiotibiais"], muscles_secondary: [],
+            steps: ["Deitada, apoio no calcanhar, quadril fixo no banco.","Flexione os joelhos puxando o peso até o final.","Desça controlado — sem bater as placas."] },
+          { name: "Abdominal Reto (máquina ou chão)", sets: 3, reps: "15 a 20", rest: 60, position: 5, method: null,
+            instructions: "3x15-20 — abdômen geral (volume)", muscles_primary: ["Abdômen"], muscles_secondary: [],
+            steps: ["Máquina: sente e flexione o tronco. Chão: deite, mãos ao lado da cabeça.","Suba contraindo o abdômen até a escápula sair do chão/apoio.","Desça controlado — não deita totalmente, mantém tensão."] }
+        ]
+      },
+      {
+        letter: "C", name: "Pernas Definição + Core", sub: "Glúteo Leve · Abdômen Pesado", color: "#00FF00", icon: "✨", position: 2,
+        exercises: [
+          { name: "Leg Press Plataforma Padrão", sets: 3, reps: "10 a 12", rest: 90, position: 0, method: null,
+            instructions: "3x10-12 — composto, carga moderada", muscles_primary: ["Quadríceps","Glúteos"], muscles_secondary: [],
+            steps: ["Pés na largura dos ombros, posição padrão.","Desça a ~90° mantendo a forma.","Suba sem travar — foco na definição, não na força máxima."] },
+          { name: "Stiff com Halteres", sets: 3, reps: "10 a 12", rest: 90, position: 1, method: null,
+            instructions: "3x10-12 — posterior e glúteos", muscles_primary: ["Isquiotibiais","Glúteos"], muscles_secondary: [],
+            steps: ["Em pé, halteres à frente, joelhos levemente flexionados.","Empurre o quadril pra trás descendo os halteres rente às pernas.","Suba contraindo o glúteo e o posterior — sem arredondar a lombar."] },
+          { name: "Hip Thrust (peso reduzido)", sets: 3, reps: "12 a 15", rest: 60, position: 2, method: null,
+            instructions: "3x12-15 — glúteo, volume moderado", muscles_primary: ["Glúteos"], muscles_secondary: [],
+            steps: ["Mesmo padrão que terça, mas com carga ~30% menor.","Foco em 15 repetições limpas — qualidade sobre quantidade.","Cada rep é uma contração forte do glúteo."] },
+          { name: "Flexora Sentada", sets: 3, reps: "15 a 20", rest: 60, position: 3, method: null,
+            instructions: "3x15-20 — posterior (definição)", muscles_primary: ["Isquiotibiais"], muscles_secondary: [],
+            steps: ["Sentada na máquina, costas apoiadas.","Flexione os joelhos com movimento controlado.","Sem bater — toda a trajetória com tensão."] },
+          { name: "Panturrilha Sentado", sets: 3, reps: "15 a 20", rest: 60, position: 4, method: null,
+            instructions: "3x15-20 — panturrilha (sóleo)", muscles_primary: ["Panturrilha"], muscles_secondary: [],
+            steps: ["Sentada, pontas dos pés na plataforma.","Suba na ponta dos pés — contração máxima.","Desça alongando — sempre completo."] },
+          { name: "Abdominal Infra (elevação de pernas ou máquina)", sets: 3, reps: "12 a 15", rest: 60, position: 5, method: null,
+            instructions: "3x12-15 — abdômen inferior (volume pesado)", muscles_primary: ["Abdômen"], muscles_secondary: [],
+            steps: ["Máquina: sente e eleve as pernas. Barra: pendurada, eleve as pernas até 90°.","Sempre controlado — sem balanço ou impulso.","Desça mantendo tensão — não descansa embaixo."] },
+          { name: "Abdominal Supra (máquina ou decline)", sets: 3, reps: "12 a 15", rest: 60, position: 6, method: null,
+            instructions: "3x12-15 — abdômen superior (volume pesado)", muscles_primary: ["Abdômen"], muscles_secondary: [],
+            steps: ["Máquina ou banco inclinado, mãos atrás (sem puxar o pescoço).","Flexione o tronco subindo até a escápula sair.","Desça controlado — mantém tensão o tempo todo, nunca relaxa."] }
+        ]
+      }
+    ]
   }
 };

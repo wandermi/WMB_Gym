@@ -410,10 +410,9 @@ function vHome() {
       
       let letter = "—", color = "#444", isRest = false, isActivity = false, wid = null;
       
-      if (!sched) {
-        letter = activityIcons.livre;
-        color = activityColors.livre;
-      } else if (actType === "rest") {
+      // Ordem importa: dias de atividade têm workout_id nulo, então o tipo
+      // precisa ser avaliado ANTES de tratar "sem treino" como dia livre.
+      if (actType === "rest") {
         letter = activityIcons.rest;
         color = activityColors.rest;
         isRest = true;
@@ -421,9 +420,12 @@ function vHome() {
         letter = activityIcons[actType];
         color = activityColors[actType];
         isActivity = true;
-      } else if (sched && !sched.startsWith("atividade:")) {
+      } else if (sched) {
         const w = APP.workouts.find(x => x.id === sched);
         if (w) { letter = w.letter || "?"; color = w.color || "#888"; wid = w.id; }
+      } else {
+        letter = activityIcons.livre;
+        color = activityColors.livre;
       }
       
       const click = wid ? `data-act="openworkout" data-id="${wid}"` : "";
