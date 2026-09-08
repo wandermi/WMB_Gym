@@ -541,7 +541,13 @@ const PROTOCOLS_CATALOG = {
             steps: ["De frente pra polia alta, cotovelos colados ao tronco.","Estenda abrindo as pontas da corda no final.","Volte controlado até formar 90° no cotovelo."] },
           { name: "Elevação de Pernas Suspenso", sets: 3, reps: "12 a 15", rest: 60, position: 7, method: null,
             instructions: "3x12-15 — abdômen inferior", muscles_primary: ["Abdômen"], muscles_secondary: [],
-            steps: ["Pendurado na barra fixa, corpo estável sem balanço.","Eleve as pernas até ~90° contraindo o abdômen inferior.","Desça controlado sem usar impulso."] }
+            steps: ["Pendurado na barra fixa, corpo estável sem balanço.","Eleve as pernas até ~90° contraindo o abdômen inferior.","Desça controlado sem usar impulso."] },
+          { name: "Rosca de Punho", sets: 3, reps: "12 a 15", rest: 45, position: 8, method: null,
+            instructions: "3x12-15 — flexores do antebraço", muscles_primary: ["Antebraço"], muscles_secondary: [],
+            steps: ["Sentado, antebraços apoiados nas coxas ou no banco, punhos livres para fora, palmas pra cima.","Deixe a barra/halteres rolarem até a ponta dos dedos e feche a mão subindo o punho.","Suba o punho até o fim da amplitude e desça controlado, sem tirar o antebraço do apoio."] },
+          { name: "Rosca de Punho Invertida", sets: 3, reps: "12 a 15", rest: 45, position: 9, method: null,
+            instructions: "3x12-15 — extensores do antebraço", muscles_primary: ["Antebraço"], muscles_secondary: [],
+            steps: ["Mesma posição da rosca de punho, mas com as palmas voltadas pra baixo (pegada pronada).","Eleve o dorso da mão em direção ao antebraço, sem levantar o cotovelo.","Desça controlado. Use carga bem menor que na versão supinada — os extensores são mais fracos."] }
         ]
       },
       {
@@ -567,7 +573,13 @@ const PROTOCOLS_CATALOG = {
             steps: ["Em pé, barra com pegada supinada na largura dos ombros.","Flexione os cotovelos subindo a barra, cotovelos fixos.","Desça controlado até estender quase totalmente."] },
           { name: "Rosca Martelo", sets: 3, reps: "10 a 12", rest: 60, position: 6, method: "cluster",
             instructions: "3x10-12 CLUSTER — braquial/antebraço", muscles_primary: ["Bíceps"], muscles_secondary: ["Antebraço"],
-            steps: ["Halteres com pegada neutra (palmas pra dentro).","Flexione mantendo a pegada neutra o tempo todo.","Desça controlado sem balanço do tronco."] }
+            steps: ["Halteres com pegada neutra (palmas pra dentro).","Flexione mantendo a pegada neutra o tempo todo.","Desça controlado sem balanço do tronco."] },
+          { name: "Rosca de Punho", sets: 3, reps: "12 a 15", rest: 45, position: 7, method: null,
+            instructions: "3x12-15 — flexores do antebraço", muscles_primary: ["Antebraço"], muscles_secondary: [],
+            steps: ["Sentado, antebraços apoiados nas coxas ou no banco, punhos livres para fora, palmas pra cima.","Deixe a barra/halteres rolarem até a ponta dos dedos e feche a mão subindo o punho.","Suba o punho até o fim da amplitude e desça controlado, sem tirar o antebraço do apoio."] },
+          { name: "Rosca de Punho Invertida", sets: 3, reps: "12 a 15", rest: 45, position: 8, method: null,
+            instructions: "3x12-15 — extensores do antebraço", muscles_primary: ["Antebraço"], muscles_secondary: [],
+            steps: ["Mesma posição da rosca de punho, mas com as palmas voltadas pra baixo (pegada pronada).","Eleve o dorso da mão em direção ao antebraço, sem levantar o cotovelo.","Desça controlado. Use carga bem menor que na versão supinada — os extensores são mais fracos."] }
         ]
       },
       {
@@ -625,7 +637,13 @@ const PROTOCOLS_CATALOG = {
             steps: ["Braços apoiados no banco scott, barra W com pegada supinada.","Flexione subindo a barra até contrair o bíceps.","Desça controlado quase até estender, sem descansar embaixo."] },
           { name: "Tríceps Testa", sets: 3, reps: "8 a 12", rest: 90, position: 7, method: null,
             instructions: "3x8-12 — tríceps", muscles_primary: ["Tríceps"], muscles_secondary: [],
-            steps: ["Deitado, barra W acima do peito com pegada estreita.","Desça flexionando os cotovelos até perto da testa.","Estenda voltando sem abrir os cotovelos."] }
+            steps: ["Deitado, barra W acima do peito com pegada estreita.","Desça flexionando os cotovelos até perto da testa.","Estenda voltando sem abrir os cotovelos."] },
+          { name: "Rosca de Punho", sets: 3, reps: "12 a 15", rest: 45, position: 8, method: null,
+            instructions: "3x12-15 — flexores do antebraço", muscles_primary: ["Antebraço"], muscles_secondary: [],
+            steps: ["Sentado, antebraços apoiados nas coxas ou no banco, punhos livres para fora, palmas pra cima.","Deixe a barra/halteres rolarem até a ponta dos dedos e feche a mão subindo o punho.","Suba o punho até o fim da amplitude e desça controlado, sem tirar o antebraço do apoio."] },
+          { name: "Rosca de Punho Invertida", sets: 3, reps: "12 a 15", rest: 45, position: 9, method: null,
+            instructions: "3x12-15 — extensores do antebraço", muscles_primary: ["Antebraço"], muscles_secondary: [],
+            steps: ["Mesma posição da rosca de punho, mas com as palmas voltadas pra baixo (pegada pronada).","Eleve o dorso da mão em direção ao antebraço, sem levantar o cotovelo.","Desça controlado. Use carga bem menor que na versão supinada — os extensores são mais fracos."] }
         ]
       },
       {

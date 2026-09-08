@@ -637,19 +637,39 @@ const MUSCLE_GROUPS = {
 async function loadMuscleMap() {
   buildExerciseMuscleMap();
 
-  // Puxa todos os sets concluídos (nome do exercício + se é drop)
-  const { data: sets, error } = await sb.from("set_logs")
-    .select("exercise_name, is_drop")
-    .eq("user_id", APP.user.id)
-    .eq("completed", true)
-    .limit(5000);
+  // Puxa TODOS os sets concluídos, paginando.
+  // O Supabase corta a resposta em 1000 linhas por requisição (limite do PostgREST),
+  // então .limit(5000) sozinho devolveria só as 1000 primeiras e as % sairiam erradas.
+  const PAGE = 1000;
+  let sets = [], error = null, from = 0;
+  while (true) {
+    const { data: page, error: pageErr } = await sb.from("set_logs")
+      .select("exercise_name, is_drop")
+      .eq("user_id", APP.user.id)
+      .eq("completed", true)
+      .range(from, from + PAGE - 1);
+    if (pageErr) { error = pageErr; break; }
+    if (!page || page.length === 0) break;
+    sets = sets.concat(page);
+    if (page.length < PAGE) break;   // última página
+    from += PAGE;
+    if (from >= 50000) break;        // trava de segurança
+  }
 
   // Sessões com cardio (para o "Aeróbico")
-  const { data: sessions } = await sb.from("workout_sessions")
-    .select("cardio_min")
-    .eq("user_id", APP.user.id)
-    .not("finished_at", "is", null)
-    .limit(2000);
+  let sessions = [], sFrom = 0;
+  while (true) {
+    const { data: sPage, error: sErr } = await sb.from("workout_sessions")
+      .select("cardio_min")
+      .eq("user_id", APP.user.id)
+      .not("finished_at", "is", null)
+      .range(sFrom, sFrom + PAGE - 1);
+    if (sErr || !sPage || sPage.length === 0) break;
+    sessions = sessions.concat(sPage);
+    if (sPage.length < PAGE) break;
+    sFrom += PAGE;
+    if (sFrom >= 20000) break;
+  }
 
   if (error || !sets || sets.length === 0) { HIST.muscleData = null; return; }
 
