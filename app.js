@@ -163,17 +163,22 @@ async function applyProtocol(protocolId) {
     }
   }
   
-  // Aplica schedule padrão do protocolo, se definido (dia_semana -> letra do treino)
+  // Aplica schedule padrão do protocolo, se definido (dia_semana -> letra do treino OU "crossfit" OU null)
   if (protocol.schedule_default) {
     await loadWorkouts(); // precisa dos IDs dos workouts recém-criados
     const byLetter = {};
     APP.workouts.forEach(w => { byLetter[w.letter] = w.id; });
     const rows = [];
-    for (const [dow, letter] of Object.entries(protocol.schedule_default)) {
-      if (letter && byLetter[letter]) {
-        rows.push({ user_id: APP.user.id, day_of_week: parseInt(dow), workout_id: byLetter[letter], is_rest: false });
+    for (const [dow, activity] of Object.entries(protocol.schedule_default)) {
+      if (activity === "crossfit") {
+        // Dia de CrossFit: sem treino normal, mas ativo
+        rows.push({ user_id: APP.user.id, day_of_week: parseInt(dow), workout_id: null, is_rest: false, activity_type: "crossfit" });
+      } else if (activity && byLetter[activity]) {
+        // Dia de treino normal
+        rows.push({ user_id: APP.user.id, day_of_week: parseInt(dow), workout_id: byLetter[activity], is_rest: false, activity_type: "workout" });
       } else {
-        rows.push({ user_id: APP.user.id, day_of_week: parseInt(dow), workout_id: null, is_rest: true });
+        // Descanso (null ou outro)
+        rows.push({ user_id: APP.user.id, day_of_week: parseInt(dow), workout_id: null, is_rest: true, activity_type: "rest" });
       }
     }
     if (rows.length > 0) await sb.from("schedule").insert(rows);
@@ -326,11 +331,19 @@ function vOnboarding() {
                 </div>
               </label>
 
-              <label class="onb-option" style="border-color:var(--a)">
+              <label class="onb-option">
                 <input type="radio" name="level" value="protocolo_7">
                 <div>
-                  <div class="onb-option-title">PPLUL — LD Consultoria (Prot. 7) ⭐</div>
-                  <div class="onb-option-desc">5 dias (Seg-Sex): Push · Pull · Legs · Upper · Lower. Cada músculo 2x/semana, com séries CLUSTER. Fim de semana livre.</div>
+                  <div class="onb-option-title">PPLUL — LD Consultoria (Prot. 7)</div>
+                  <div class="onb-option-desc">5 dias (Seg-Sex): Push · Pull · Legs · Upper · Lower.</div>
+                </div>
+              </label>
+
+              <label class="onb-option" style="border-color:#FF4A6E">
+                <input type="radio" name="level" value="protocolo_8">
+                <div>
+                  <div class="onb-option-title">Lower Focus Feminino (Prot. 8) ⭐</div>
+                  <div class="onb-option-desc">Seg/Qua/Sex musculação (pernas pesadas → volume → definição+core). Ter/Qui: CrossFit marcados no app.</div>
                 </div>
               </label>
               
@@ -386,19 +399,38 @@ function vHome() {
   // ─── BARRA SEMANAL: Dom..Sáb com o treino de cada dia, HOJE destacado ───
   const dayLabels = ["D", "S", "T", "Q", "Q", "S", "S"];
   const dayFull = ["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"];
+  const activityIcons = { caminhada: "🚶", corrida: "🏃", bike: "🚴", crossfit: "⛹️", livre: "—", rest: "⏸", workout: "?" };
+  const activityColors = { caminhada: "#4A9EFF", corrida: "#FF6B4A", bike: "#FFB84A", crossfit: "#FF6B9D", livre: "#444", rest: "#666", workout: "#888" };
+  
   const weekStrip = (() => {
     const cells = dayLabels.map((dl, dow) => {
       const isToday = dow === today;
       const sched = SETT.schedule?.[dow];
-      let letter = "—", color = "#444", isRest = false, wid = null;
-      if (sched === "rest") { letter = "⏸"; color = "#666"; isRest = true; }
-      else if (sched) {
+      const actType = SETT.scheduleActivity?.[dow];
+      
+      let letter = "—", color = "#444", isRest = false, isActivity = false, wid = null;
+      
+      if (!sched) {
+        letter = activityIcons.livre;
+        color = activityColors.livre;
+      } else if (actType === "rest") {
+        letter = activityIcons.rest;
+        color = activityColors.rest;
+        isRest = true;
+      } else if (["caminhada", "corrida", "bike", "crossfit"].includes(actType)) {
+        letter = activityIcons[actType];
+        color = activityColors[actType];
+        isActivity = true;
+      } else if (sched && !sched.startsWith("atividade:")) {
         const w = APP.workouts.find(x => x.id === sched);
         if (w) { letter = w.letter || "?"; color = w.color || "#888"; wid = w.id; }
       }
+      
       const click = wid ? `data-act="openworkout" data-id="${wid}"` : "";
+      const cssClass = isRest ? "ws-rest" : (isActivity ? "ws-activity" : "");
+      
       return `
-        <div class="ws-cell ${isToday ? "ws-today" : ""} ${isRest ? "ws-rest" : ""}" ${click} title="${dayFull[dow]}" style="--cc:${color}">
+        <div class="ws-cell ${isToday ? "ws-today" : ""} ${cssClass}" ${click} title="${dayFull[dow]}" style="--cc:${color}">
           <div class="ws-dow">${dl}</div>
           <div class="ws-letter">${letter}</div>
           ${isToday ? `<div class="ws-dot"></div>` : ""}
@@ -601,7 +633,13 @@ document.addEventListener("click", async (e) => {
     APP.modal = null;
     render();
   } else if (act === "logout") {
-    if (confirm("Tem certeza que deseja sair?")) await signOut();
+    const ok = await confirmDialog({
+      title: "Sair da conta",
+      message: "Seus treinos e histórico continuam salvos. Você vai precisar entrar de novo.",
+      confirmText: "Sair",
+      cancelText: "Ficar"
+    });
+    if (ok) await signOut();
   } else if (act === "openworkout") {
     await startWorkout(el.dataset.id);
   } else if (act === "toggleex") {
@@ -627,7 +665,13 @@ document.addEventListener("click", async (e) => {
     const totalSets = Object.values(WO.setLogs).flat().length;
     const doneSets = Object.values(WO.setLogs).flat().filter(s => s.completed).length;
     if (doneSets < totalSets) {
-      if (!confirm(`Você completou ${doneSets} de ${totalSets} séries. Finalizar mesmo assim?`)) return;
+      const ok = await confirmDialog({
+        title: "Finalizar treino?",
+        message: `Você completou ${doneSets} de ${totalSets} séries. As séries em branco não serão registradas.`,
+        confirmText: "Finalizar",
+        cancelText: "Continuar treinando"
+      });
+      if (!ok) return;
     }
     await finishWorkout();
   } else if (act === "goto") {
@@ -740,6 +784,13 @@ document.addEventListener("input", (e) => {
     if (sets && sets[idx]) {
       if (isWeight) sets[idx].weight = t.value;
       else sets[idx].reps = t.value;
+      // O usuário digitou: o valor deixa de ser sugestão da sessão anterior.
+      // Remove o destaque na hora, sem re-render (não fecha o teclado).
+      if (sets[idx].prefilled) {
+        sets[idx].prefilled = false;
+        const row = t.closest(".set-row");
+        if (row) row.querySelectorAll(".set-suggested").forEach(el => el.classList.remove("set-suggested"));
+      }
     }
   }
 });
@@ -970,3 +1021,81 @@ async function syncOfflineQueue() {
   await checkSession();
   if (navigator.onLine) syncOfflineQueue();
 })();
+// ===========================================
+// CONFIRM DIALOG — substitui o confirm() nativo
+// Promise-based: const ok = await confirmDialog({...})
+// ===========================================
+
+function confirmDialog({ title, message, confirmText = "Confirmar", cancelText = "Cancelar", danger = false, holdToConfirm = false }) {
+  return new Promise(resolve => {
+    // Se já houver um diálogo aberto, ignora (evita empilhar)
+    if (document.getElementById("confirm-dialog")) return resolve(false);
+
+    const overlay = document.createElement("div");
+    overlay.id = "confirm-dialog";
+    overlay.className = "modal-overlay";
+    overlay.innerHTML = `
+      <div class="modal-sheet confirm-sheet" role="alertdialog" aria-modal="true" aria-labelledby="cd-title">
+        <div class="modal-handle"></div>
+        <div class="cd-title ${danger ? "cd-title-danger" : ""}" id="cd-title">${escapeHTML(title)}</div>
+        <div class="cd-message">${escapeHTML(message)}</div>
+        <div class="cd-actions">
+          <button class="cd-btn cd-cancel" data-cd="cancel">${escapeHTML(cancelText)}</button>
+          <button class="cd-btn ${danger ? "cd-danger" : "cd-confirm"} ${holdToConfirm ? "cd-hold" : ""}"
+                  data-cd="confirm" ${holdToConfirm ? 'data-hold="1"' : ""}>
+            ${holdToConfirm ? `<span class="cd-hold-fill"></span><span class="cd-hold-label">${escapeHTML(confirmText)}</span>` : escapeHTML(confirmText)}
+          </button>
+        </div>
+        ${holdToConfirm ? `<div class="cd-hint">Segure o botão por 2 segundos</div>` : ""}
+      </div>
+    `;
+
+    let holdTimer = null;
+    let settled = false;
+
+    const close = (result) => {
+      if (settled) return;
+      settled = true;
+      if (holdTimer) clearTimeout(holdTimer);
+      document.removeEventListener("keydown", onKey);
+      overlay.classList.add("cd-closing");
+      setTimeout(() => overlay.remove(), 150);
+      resolve(result);
+    };
+
+    const onKey = (e) => { if (e.key === "Escape") close(false); };
+    document.addEventListener("keydown", onKey);
+
+    // Toque fora do card = cancelar
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) close(false); });
+
+    const confirmBtn = overlay.querySelector('[data-cd="confirm"]');
+    overlay.querySelector('[data-cd="cancel"]').addEventListener("click", () => close(false));
+
+    if (holdToConfirm) {
+      // Ação destrutiva: precisa segurar, não basta um toque acidental
+      const startHold = (e) => {
+        e.preventDefault();
+        confirmBtn.classList.add("cd-holding");
+        holdTimer = setTimeout(() => {
+          if (navigator.vibrate) navigator.vibrate(60);
+          close(true);
+        }, 2000);
+      };
+      const cancelHold = () => {
+        confirmBtn.classList.remove("cd-holding");
+        if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
+      };
+      confirmBtn.addEventListener("pointerdown", startHold);
+      confirmBtn.addEventListener("pointerup", cancelHold);
+      confirmBtn.addEventListener("pointerleave", cancelHold);
+      confirmBtn.addEventListener("pointercancel", cancelHold);
+    } else {
+      confirmBtn.addEventListener("click", () => close(true));
+    }
+
+    document.body.appendChild(overlay);
+    // Foco no botão seguro por padrão
+    setTimeout(() => overlay.querySelector('[data-cd="cancel"]')?.focus(), 50);
+  });
+}

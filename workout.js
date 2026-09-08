@@ -60,6 +60,38 @@ function fmtDuration(ms) {
 // SESSION MANAGEMENT
 // ===========================================
 
+
+// ===========================================
+// WAKE LOCK — impede a tela de apagar durante o treino
+// ===========================================
+
+let wakeLockSentinel = null;
+
+async function requestWakeLock() {
+  if (!("wakeLock" in navigator)) return;   // Safari < 16.4, Firefox
+  try {
+    wakeLockSentinel = await navigator.wakeLock.request("screen");
+    wakeLockSentinel.addEventListener("release", () => { wakeLockSentinel = null; });
+  } catch (e) {
+    // Falha silenciosa: bateria baixa, permissão negada, aba em background
+    console.warn("[WakeLock] indisponível:", e.name);
+  }
+}
+
+async function releaseWakeLock() {
+  if (!wakeLockSentinel) return;
+  try { await wakeLockSentinel.release(); } catch (e) {}
+  wakeLockSentinel = null;
+}
+
+// iOS/Android soltam o wake lock ao trocar de aba ou bloquear.
+// Ao voltar, se o treino ainda está rolando, pede de novo.
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && WO.session && !wakeLockSentinel) {
+    requestWakeLock();
+  }
+});
+
 async function startWorkout(workoutId) {
   const wo = APP.workouts.find(w => w.id === workoutId);
   if (!wo) { showToast("Treino não encontrado", "error"); return; }
@@ -73,7 +105,11 @@ async function startWorkout(workoutId) {
   WO.startedAt = Date.now();
   WO.summary = null;
   
-  if (navigator.onLine) await loadPreviousLogs();
+  if (navigator.onLine) {
+    await loadPreviousLogs();
+  } else {
+    loadPreviousLogsFromCache();   // offline: usa o que foi guardado na última sessão online
+  }
   
   const sessionPayload = {
     id: crypto.randomUUID(),
@@ -98,13 +134,17 @@ async function startWorkout(workoutId) {
   
   wo.exercises.forEach(ex => {
     if (!ex.is_warmup && !ex.is_mobility) {
-      const logs = Array.from({length: ex.sets || 0}, (_, i) => ({
-        set_number: i + 1,
-        weight: WO.previousLogs[ex.id]?.weight || "",
-        reps: WO.previousLogs[ex.id]?.reps || ex.reps || "",
-        completed: false,
-        is_drop: false
-      }));
+      const logs = Array.from({length: ex.sets || 0}, (_, i) => {
+        const sug = suggestedForSet(ex.id, i);
+        return {
+          set_number: i + 1,
+          weight: sug?.weight || "",
+          reps: sug?.reps || ex.reps || "",
+          completed: false,
+          is_drop: false,
+          prefilled: !!sug?.weight   // marca visualmente que veio da sessão anterior
+        };
+      });
       // Drop Set / Backoff: linha extra com carga reduzida sugerida
       if (ex.method === "drop_set" || ex.method === "backoff") {
         const lastW = parseFloat(WO.previousLogs[ex.id]?.weight) || 0;
@@ -124,6 +164,8 @@ async function startWorkout(workoutId) {
   WO.sessionTimerId = setInterval(() => {
     if (APP.view === "workout") updateSessionTimer();
   }, 1000);
+  
+  requestWakeLock();   // tela fica acesa até finalizar/cancelar
   
   APP.view = "workout";
   render();
@@ -157,11 +199,58 @@ async function loadPreviousLogs() {
     }
     const prev = WO.previousLogs[log.exercise_id];
     if (log.session_id === prev.lastSessionId && !log.is_drop) {
-      prev.lastSessionSets.push({ weight: parseFloat(log.weight_kg) || 0, reps: parseInt(log.reps_done) || 0 });
+      prev.lastSessionSets.push({
+        set_number: log.set_number,
+        weight: parseFloat(log.weight_kg) || 0,
+        reps: parseInt(log.reps_done) || 0
+      });
     }
     const w = parseFloat(log.weight_kg) || 0;
     if (w > prev.maxWeight) prev.maxWeight = w;
   });
+
+  // Ordena os sets da última sessão pela ordem real (1, 2, 3...).
+  // A query vem por completed_at DESC, então sem isso a série 1 fica por último.
+  Object.values(WO.previousLogs).forEach(prev => {
+    prev.lastSessionSets.sort((a, b) => (a.set_number || 0) - (b.set_number || 0));
+  });
+
+  cachePreviousLogs();   // guarda para uso offline
+}
+
+// ===========================================
+// CACHE DE CARGAS ANTERIORES (para funcionar offline)
+// ===========================================
+
+const PREV_CACHE_KEY = "wmb_prev_logs_v1";
+
+function cachePreviousLogs() {
+  try {
+    const cache = JSON.parse(localStorage.getItem(PREV_CACHE_KEY) || "{}");
+    Object.entries(WO.previousLogs).forEach(([exId, prev]) => { cache[exId] = prev; });
+    localStorage.setItem(PREV_CACHE_KEY, JSON.stringify(cache));
+  } catch (e) { console.warn("[PrevCache] falha ao gravar:", e); }
+}
+
+function loadPreviousLogsFromCache() {
+  try {
+    const cache = JSON.parse(localStorage.getItem(PREV_CACHE_KEY) || "{}");
+    const ids = WO.workout.exercises.filter(e => !e.is_warmup && !e.is_mobility).map(e => e.id);
+    ids.forEach(id => { if (cache[id]) WO.previousLogs[id] = cache[id]; });
+  } catch (e) { console.warn("[PrevCache] falha ao ler:", e); }
+}
+
+// Devolve a carga/reps sugeridas para UMA série específica.
+// Usa o valor da mesma série na última sessão; se não existir, cai na última série registrada.
+function suggestedForSet(exId, setIndex) {
+  const prev = WO.previousLogs[exId];
+  if (!prev) return null;
+  const bySet = prev.lastSessionSets?.[setIndex];
+  if (bySet && bySet.weight > 0) return { weight: bySet.weight, reps: bySet.reps };
+  const lastSet = prev.lastSessionSets?.[prev.lastSessionSets.length - 1];
+  if (lastSet && lastSet.weight > 0) return { weight: lastSet.weight, reps: lastSet.reps };
+  if (prev.weight) return { weight: prev.weight, reps: prev.reps };
+  return null;
 }
 
 // ===========================================
@@ -238,6 +327,8 @@ async function finishWorkout() {
     cardioSaved: false
   };
   
+  releaseWakeLock();   // libera a tela
+  
   if (WO.sessionTimerId) clearInterval(WO.sessionTimerId);
   if (WO.restTimer?.intervalId) clearInterval(WO.restTimer.intervalId);
   localStorage.removeItem("wmb_rest_timer");
@@ -251,7 +342,14 @@ async function finishWorkout() {
 }
 
 async function cancelWorkout() {
-  if (!confirm("Cancelar treino? Os dados desta sessão serão perdidos.")) return;
+  const ok = await confirmDialog({
+    title: "Cancelar treino?",
+    message: "As séries registradas nesta sessão serão apagadas. Seu histórico anterior não é afetado.",
+    confirmText: "Cancelar treino",
+    cancelText: "Voltar ao treino",
+    danger: true
+  });
+  if (!ok) return;
   
   if (WO.session) {
     if (navigator.onLine) {
@@ -265,6 +363,8 @@ async function cancelWorkout() {
     );
   }
   localStorage.removeItem("wmb_rest_timer");
+  
+  releaseWakeLock();   // libera a tela
   
   if (WO.sessionTimerId) clearInterval(WO.sessionTimerId);
   if (WO.restTimer?.intervalId) clearInterval(WO.restTimer.intervalId);
@@ -367,7 +467,12 @@ function updateAfterSetToggle(exerciseId, setIndex) {
   const row = document.querySelector(`[data-act="toggleset"][data-eid="${exerciseId}"][data-idx="${setIndex}"]`)?.closest(".set-row");
   if (row) {
     row.classList.toggle("set-done", set.completed);
-    row.querySelectorAll(".set-input").forEach(inp => inp.disabled = set.completed);
+    row.querySelectorAll(".set-input").forEach(inp => {
+      inp.disabled = set.completed;
+      // Confirmou a série: o valor virou registro, não é mais sugestão
+      if (set.completed) inp.classList.remove("set-suggested");
+      else if (set.prefilled) inp.classList.add("set-suggested");
+    });
     const btn = row.querySelector(".set-check");
     if (btn) { btn.classList.toggle("checked", set.completed); btn.textContent = set.completed ? "✓" : ""; }
   }
@@ -678,15 +783,23 @@ function vWorkoutExecution() {
     
     let setsTableHtml = "";
     if (isExpanded) {
-      const rows = sets.map((set, i) => `
+      const rows = sets.map((set, i) => {
+        // Referência da MESMA série na sessão anterior (não do último set genérico)
+        const sug = set.is_drop ? null : suggestedForSet(ex.id, i);
+        const prevLabel = set.is_drop
+          ? "−30%"
+          : (sug ? `${sug.weight}kg × ${sug.reps || "-"}` : "—");
+        // Destaque enquanto o valor ainda é sugestão (não confirmado nem editado)
+        const isSuggestion = set.prefilled && !set.completed;
+        return `
         <div class="set-row ${set.completed ? "set-done" : ""} ${set.is_drop ? "set-drop" : ""}">
           <div class="set-num">${set.is_drop ? "D" : set.set_number}</div>
-          <div class="set-prev">${set.is_drop ? "−30%" : (prev ? `${prev.weight}kg × ${prev.reps || "-"}` : "—")}</div>
-          <input class="set-input" type="number" inputmode="decimal" placeholder="kg" value="${set.weight || ""}" data-w="${ex.id}-${i}" ${set.completed ? "disabled" : ""}>
-          <input class="set-input" type="text" inputmode="numeric" placeholder="${set.is_drop ? "falha" : "reps"}" value="${set.reps || ""}" data-r="${ex.id}-${i}" ${set.completed ? "disabled" : ""}>
+          <div class="set-prev">${prevLabel}</div>
+          <input class="set-input ${isSuggestion ? "set-suggested" : ""}" type="number" inputmode="decimal" placeholder="kg" value="${set.weight || ""}" data-w="${ex.id}-${i}" ${set.completed ? "disabled" : ""}>
+          <input class="set-input ${isSuggestion ? "set-suggested" : ""}" type="text" inputmode="numeric" placeholder="${set.is_drop ? "falha" : "reps"}" value="${set.reps || ""}" data-r="${ex.id}-${i}" ${set.completed ? "disabled" : ""}>
           <button class="set-check ${set.completed ? "checked" : ""}" data-act="toggleset" data-eid="${ex.id}" data-idx="${i}">${set.completed ? "✓" : ""}</button>
         </div>
-      `).join("");
+      `;}).join("");
       
       setsTableHtml = `
         <div class="ex-body">

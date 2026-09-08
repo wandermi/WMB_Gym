@@ -195,6 +195,9 @@ body{background:#0A0A0A;font-family:'Inter',sans-serif;color:#F0F0F0;overscroll-
 .set-prev{font-size:10px;color:var(--m);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .set-input{width:100%;background:var(--card-light);border:1px solid var(--b);border-radius:6px;color:var(--text);font-family:'Inter',sans-serif;font-size:13px;font-weight:600;padding:6px;text-align:center;-webkit-appearance:none;appearance:none}
 .set-input:focus{outline:none;border-color:var(--a)}
+/* Valor sugerido da sessão anterior — some quando o usuário digita ou confirma */
+.set-input.set-suggested{color:var(--m);border-style:dashed;border-color:#3A3A3A;font-weight:500}
+.set-input.set-suggested:focus{color:var(--text);border-style:solid;border-color:var(--a);font-weight:600}
 .set-input:disabled{opacity:.5;background:var(--bg)}
 .set-check{width:36px;height:32px;border:2px solid var(--b);background:transparent;border-radius:6px;color:var(--m);font-size:16px;cursor:pointer;font-weight:700;display:flex;align-items:center;justify-content:center}
 .set-check.checked{background:var(--a);border-color:var(--a);color:#000}
@@ -523,6 +526,30 @@ body:has(.install-banner) .workout-header{padding-top:16px}
 .mm-glow circle{fill:#00FF00;opacity:.85;filter:drop-shadow(0 0 4px #00FF00)}
 .mm-foot{font-size:10px;color:var(--m);margin-top:12px;line-height:1.5;text-align:center}
 @media (max-width:360px){.mm-figure,.mm-body{width:72px}.mm-badge{font-size:16px;min-width:40px;padding:5px 8px}.mm-label{font-size:10px}}
+
+
+/* Atividades na week strip */
+.ws-activity{background:rgba(255,255,255,.03);border-color:var(--cc) !important}
+.ws-activity .ws-letter{font-weight:700}
+
+
+/* ── CONFIRM DIALOG ── */
+.confirm-sheet{max-width:400px;padding-bottom:max(28px,env(safe-area-inset-bottom))}
+.cd-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.04em;margin-bottom:10px;color:var(--text)}
+.cd-title-danger{color:#FF4A4A}
+.cd-message{font-size:14px;line-height:1.55;color:var(--text-soft);margin-bottom:20px}
+.cd-actions{display:flex;gap:10px}
+.cd-btn{flex:1;padding:14px 12px;border-radius:10px;font-family:'Inter',sans-serif;font-size:14px;font-weight:700;border:1px solid var(--b);cursor:pointer;transition:transform .1s,opacity .15s;position:relative;overflow:hidden;-webkit-tap-highlight-color:transparent}
+.cd-btn:active{transform:scale(.97)}
+.cd-cancel{background:var(--card-light);color:var(--text)}
+.cd-confirm{background:var(--a);color:#000;border-color:var(--a)}
+.cd-danger{background:#2A1010;color:#FF4A4A;border-color:#FF4A4A}
+.cd-hold{user-select:none;-webkit-user-select:none;touch-action:none}
+.cd-hold-fill{position:absolute;inset:0 auto 0 0;width:0;background:#FF4A4A;opacity:.35;pointer-events:none}
+.cd-holding .cd-hold-fill{width:100%;transition:width 2s linear}
+.cd-hold-label{position:relative;z-index:1}
+.cd-hint{font-size:11px;color:var(--m);text-align:center;margin-top:12px}
+.cd-closing{opacity:0;transition:opacity .15s}
 
 </style>
 </head>

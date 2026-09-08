@@ -3,7 +3,8 @@
 // ===========================================
 
 const SETT = {
-  schedule: {},  // { 0: workout_id, 1: "rest", ... }  (0=Domingo, 6=Sábado)
+  schedule: {},  // { 0: workout_id, 1: null, ... }
+  scheduleActivity: {},  // { 0: "workout" | "rest" | "caminhada" | "corrida" | "bike" | "crossfit", ... }
   loading: false,
 };
 
@@ -18,21 +19,40 @@ async function loadSchedule() {
   if (error) { console.error(error); return; }
   
   SETT.schedule = {};
+  SETT.scheduleActivity = {};
   (data || []).forEach(s => {
-    SETT.schedule[s.day_of_week] = s.is_rest ? "rest" : s.workout_id;
+    const activity = s.activity_type || (s.is_rest ? "rest" : "workout");
+    SETT.schedule[s.day_of_week] = s.workout_id || null;
+    SETT.scheduleActivity[s.day_of_week] = activity;
   });
 }
 
 async function saveDayWorkout(day, value) {
-  const isRest = value === "rest";
-  const workoutId = (value && value !== "rest") ? value : null;
+  let workoutId = null, activityType = null, isRest = false;
+  
+  if (value === "" || value === null) {
+    await sb.from("schedule").delete().eq("user_id", APP.user.id).eq("day_of_week", day);
+    delete SETT.schedule[day];
+    delete SETT.scheduleActivity[day];
+    render();
+    return;
+  } else if (value === "rest") {
+    isRest = true;
+    activityType = "rest";
+  } else if (value.startsWith("activity:")) {
+    activityType = value.split(":")[1];
+  } else {
+    workoutId = value;
+    activityType = "workout";
+  }
   
   const { error } = await sb.from("schedule")
     .upsert({
       user_id: APP.user.id,
       day_of_week: day,
       workout_id: workoutId,
-      is_rest: isRest
+      is_rest: isRest,
+      activity_type: activityType
     }, { onConflict: "user_id,day_of_week" });
   
   if (error) {
@@ -41,18 +61,33 @@ async function saveDayWorkout(day, value) {
     return;
   }
   
-  if (value === null || value === "") {
-    await sb.from("schedule").delete().eq("user_id", APP.user.id).eq("day_of_week", day);
-    delete SETT.schedule[day];
-  } else {
-    SETT.schedule[day] = value;
-  }
+  SETT.schedule[day] = workoutId;
+  SETT.scheduleActivity[day] = activityType;
   render();
 }
 
 async function clearAllProgress() {
-  if (!confirm("⚠️ Isso vai APAGAR todo o seu histórico de treinos e cargas registradas. Tem certeza?")) return;
-  if (!confirm("Última chance! Vai apagar TUDO. Continuar?")) return;
+  // Conta o que será perdido — número concreto pesa mais que aviso genérico
+  let resumo = "Todo o seu histórico de treinos e cargas registradas será apagado.";
+  try {
+    const [{ count: nSessions }, { count: nSets }] = await Promise.all([
+      sb.from("workout_sessions").select("id", { count: "exact", head: true }).eq("user_id", APP.user.id),
+      sb.from("set_logs").select("id", { count: "exact", head: true }).eq("user_id", APP.user.id)
+    ]);
+    if (nSessions || nSets) {
+      resumo = `Você vai apagar ${nSessions || 0} treino(s) e ${nSets || 0} série(s) registradas. Suas cargas e recordes serão perdidos. Isso não pode ser desfeito.`;
+    }
+  } catch (e) { /* offline ou erro de contagem: mantém o texto genérico */ }
+
+  const ok = await confirmDialog({
+    title: "Apagar todo o histórico",
+    message: resumo,
+    confirmText: "Apagar tudo",
+    cancelText: "Cancelar",
+    danger: true,
+    holdToConfirm: true
+  });
+  if (!ok) return;
   
   await sb.from("set_logs").delete().eq("user_id", APP.user.id);
   await sb.from("workout_sessions").delete().eq("user_id", APP.user.id);
@@ -107,14 +142,28 @@ function vSettings() {
                 <div class="schedule-row">
                   <div class="sch-day-label">${DAY_NAMES_FULL[day]}</div>
                   <select class="form-input schedule-select" data-act="setday" data-day="${day}">
-                    <option value="" ${!current ? "selected" : ""}>— Livre —</option>
-                    <option value="rest" ${isRest ? "selected" : ""}>🛌 Descanso</option>
-                    ${APP.workouts.map(w => 
-                      `<option value="${w.id}" ${current === w.id ? "selected" : ""}>${w.letter || ""} - ${escapeHTML(w.name)}</option>`
-                    ).join("")}
+                    <option value="" ${!current && SETT.scheduleActivity?.[day] !== "rest" && SETT.scheduleActivity?.[day] !== "caminhada" && SETT.scheduleActivity?.[day] !== "corrida" && SETT.scheduleActivity?.[day] !== "bike" && SETT.scheduleActivity?.[day] !== "crossfit" ? "selected" : ""}>— Livre —</option>
+                    <option value="rest" ${SETT.scheduleActivity?.[day] === "rest" ? "selected" : ""}>🛌 Descanso</option>
+                    <option value="activity:caminhada" ${SETT.scheduleActivity?.[day] === "caminhada" ? "selected" : ""}>🚶 Caminhada</option>
+                    <option value="activity:corrida" ${SETT.scheduleActivity?.[day] === "corrida" ? "selected" : ""}>🏃 Corrida</option>
+                    <option value="activity:bike" ${SETT.scheduleActivity?.[day] === "bike" ? "selected" : ""}>🚴 Bike</option>
+                    <option value="activity:crossfit" ${SETT.scheduleActivity?.[day] === "crossfit" ? "selected" : ""}>⛹️ CrossFit</option>
+                    <optgroup label="─ Treinos ─">
+                      ${APP.workouts.map(w => 
+                        `<option value="${w.id}" ${current === w.id ? "selected" : ""}>${w.letter || ""} - ${escapeHTML(w.name)}</option>`
+                      ).join("")}
+                    </optgroup>
                   </select>
-                  ${workout ? `<div class="sch-color-dot" style="background:${workout.color}"></div>` : ""}
-                  ${isRest ? `<div class="sch-color-dot rest-dot">💤</div>` : ""}
+                  ${(() => {
+                    const act = SETT.scheduleActivity?.[day];
+                    if (act === "rest") return `<div class="sch-color-dot rest-dot">💤</div>`;
+                    if (act === "caminhada") return `<div class="sch-color-dot" style="background:#8FBC8F">🚶</div>`;
+                    if (act === "corrida") return `<div class="sch-color-dot" style="background:#FF6347">🏃</div>`;
+                    if (act === "bike") return `<div class="sch-color-dot" style="background:#4169E1">🚴</div>`;
+                    if (act === "crossfit") return `<div class="sch-color-dot" style="background:#FF8F00">⛹️</div>`;
+                    if (workout) return `<div class="sch-color-dot" style="background:${workout.color}"></div>`;
+                    return "";
+                  })()}
                 </div>
               `;
             }).join("")}
