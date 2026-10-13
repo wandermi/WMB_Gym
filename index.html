@@ -551,6 +551,57 @@ body:has(.install-banner) .workout-header{padding-top:16px}
 .cd-hint{font-size:11px;color:var(--m);text-align:center;margin-top:12px}
 .cd-closing{opacity:0;transition:opacity .15s}
 
+
+/* ===== Corrida ===== */
+.qc-wide{grid-column:1/-1;display:flex;align-items:center;gap:12px;text-align:left;padding:14px 16px}
+.qc-wide .qc-icon{margin:0}
+.qc-wide .qc-tag{margin-top:2px}
+.ws-run{position:absolute;top:3px;right:3px;font-size:10px;line-height:1}
+.ws-run-done{color:var(--a);font-weight:700}
+.run-body{padding:16px 16px 40px}
+.run-warn{background:#FFD60022;border:1px solid #FFD600;color:#FFD600;border-radius:10px;padding:12px 14px;font-size:13px;margin-bottom:14px;line-height:1.4}
+.run-goal{display:flex;align-items:center;justify-content:space-around;background:var(--card);border:1px solid var(--b);border-radius:14px;padding:16px 10px}
+.run-goal-col{text-align:center}
+.run-goal-l{font-size:10px;letter-spacing:.12em;color:var(--m);font-weight:700}
+.run-goal-v{font-family:'Bebas Neue',sans-serif;font-size:34px;line-height:1.05;margin-top:2px}
+.run-goal-s{font-size:12px;color:var(--m-light)}
+.run-goal-target .run-goal-v{color:var(--a)}
+.run-goal-arrow{font-size:22px;color:var(--m)}
+.run-best{font-size:12px;color:var(--m-light);text-align:center;margin-top:8px}
+.run-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0 18px}
+.run-stats>div{background:var(--card);border:1px solid var(--b);border-radius:12px;padding:12px;text-align:center}
+.run-stat-v{font-family:'Bebas Neue',sans-serif;font-size:26px;line-height:1}
+.run-stat-l{font-size:9px;letter-spacing:.12em;color:var(--m);margin-top:3px;font-weight:700}
+.run-next-label,.run-week-label{font-size:10px;letter-spacing:.14em;color:var(--m);font-weight:700;margin:0 2px 8px}
+.run-week-label span{font-weight:500;margin-left:6px;letter-spacing:.04em}
+.run-week{margin-bottom:18px}
+.run-sess{background:var(--card);border:1px solid var(--b);border-left:3px solid var(--rc);border-radius:12px;padding:12px 14px;margin-bottom:8px}
+.run-today{border-color:var(--rc);box-shadow:0 0 0 1px var(--rc) inset}
+.run-done{opacity:.7}
+.run-race{border-width:2px;border-color:var(--rc)}
+.run-sess-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.run-date{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--m-light)}
+.run-badge{font-size:11px;color:var(--rc);font-weight:600}
+.run-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:.04em;margin-top:4px}
+.run-desc{font-size:12px;color:var(--m-light);line-height:1.45;margin-top:4px}
+.run-desc div+div{margin-top:3px}
+.run-result{margin-top:8px;font-size:13px;color:var(--a);font-weight:600}
+.run-btn{margin-top:10px;width:100%;background:var(--a);border:none;border-radius:9px;color:#000;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;padding:11px;cursor:pointer}
+.run-btn:active{transform:scale(.98)}
+.run-btn-ghost{background:transparent;border:1px solid var(--b);color:var(--text)}
+.run-log{display:flex;align-items:flex-start;gap:10px;background:var(--card);border:1px solid var(--b);border-radius:12px;padding:12px 14px;margin-bottom:8px}
+.run-log-main{flex:1;min-width:0}
+.run-log-top{display:flex;gap:8px;align-items:center;font-size:11px;color:var(--m);font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.run-log-tag{font-weight:500;text-transform:none;letter-spacing:0;color:var(--m-light)}
+.run-log-val{font-size:14px;margin-top:3px}
+.run-log-note{font-size:12px;color:var(--m-light);margin-top:2px}
+.run-del{background:none;border:none;color:var(--m);font-size:16px;padding:6px;cursor:pointer}
+.run-note{font-size:11px;color:var(--m);line-height:1.5;margin-top:18px;padding:0 2px}
+.run-form{display:flex;flex-direction:column;gap:12px}
+.run-lbl{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--m-light);font-weight:600}
+.run-row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.run-pace{font-size:13px;color:var(--a);text-align:center;min-height:18px}
+.run-cancel{background:none;border:none;color:var(--m-light);font-size:13px;padding:8px;cursor:pointer}
 </style>
 </head>
 <body>
@@ -571,6 +622,7 @@ body:has(.install-banner) .workout-header{padding-top:16px}
 <script src="history.js"></script>
 <script src="profile.js"></script>
 <script src="settings.js"></script>
+<script src="run.js"></script>
 <script src="app.js"></script>
 <script src="install.js"></script>
 </body>

@@ -1,5 +1,5 @@
-const CACHE = 'wmb-v9-0';
-const ASSETS = ['./', './index.html', './app.js', './config.js', './seed.js', './exercise_steps.js', './workout.js', './history.js', './profile.js', './settings.js', './install.js', './manifest.json', './icon.svg', './icon-maskable.svg', './splash.svg'];
+const CACHE = 'wmb-v10-0';
+const ASSETS = ['./', './index.html', './app.js', './config.js', './seed.js', './exercise_steps.js', './workout.js', './history.js', './profile.js', './settings.js', './run.js', './install.js', './manifest.json', './icon.svg', './icon-maskable.svg', './splash.svg'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS).catch(() => {})));

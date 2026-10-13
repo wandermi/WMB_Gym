@@ -951,7 +951,7 @@ function vVideoModal() {
   
   return `
     <div class="modal-overlay" data-act="closevideo">
-      <div class="modal-sheet video-modal" onclick="event.stopPropagation()">
+      <div class="modal-sheet video-modal">
         <div class="modal-handle"></div>
         <div class="video-header">
           <div class="video-title">${escapeHTML(ex.name)}</div>

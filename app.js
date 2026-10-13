@@ -396,6 +396,21 @@ function vHome() {
     </div>
   ` : "";
   
+  // ─── Corrida planejada para hoje ───
+  const todayRun = runPlanFor(runDateStr());
+  const todayRunDone = todayRun ? runLogsFor(todayRun.date).length > 0 : false;
+  const todayRunCard = todayRun ? `
+    <div class="today-card" data-act="gorun" style="--ex-color:${RUN_KINDS[todayRun.kind].color}">
+      <div class="tc-icon">${todayRun.kind === "race" ? "🏁" : "🏃"}</div>
+      <div class="tc-info">
+        <div class="tc-label" style="color:${RUN_KINDS[todayRun.kind].color}">CORRIDA DE HOJE${todayRunDone ? " · FEITA ✓" : ""}</div>
+        <div class="tc-name">${escapeHTML(todayRun.title)}</div>
+        <div class="tc-sub">${escapeHTML(RUN_KINDS[todayRun.kind].label)}${today === 0 ? " · antes do Push" : ""}</div>
+      </div>
+      <div class="tc-action">›</div>
+    </div>
+  ` : "";
+  
   // ─── BARRA SEMANAL: Dom..Sáb com o treino de cada dia, HOJE destacado ───
   const dayLabels = ["D", "S", "T", "Q", "Q", "S", "S"];
   const dayFull = ["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"];
@@ -428,13 +443,22 @@ function vHome() {
         color = activityColors.livre;
       }
       
-      const click = wid ? `data-act="openworkout" data-id="${wid}"` : "";
+      // Selo 🏃: há corrida planejada nesse dia (sem alterar a agenda)
+      const cellDate = new Date(); cellDate.setDate(cellDate.getDate() - today + dow);
+      const cellStr = runDateStr(cellDate);
+      const runPlan = runPlanFor(cellStr);
+      const runDone = runPlan ? runLogsFor(cellStr).length > 0 : false;
+      const runBadge = runPlan && actType !== "corrida"
+        ? `<div class="ws-run ${runDone ? "ws-run-done" : ""}">${runDone ? "✓" : "🏃"}</div>` : "";
+      
+      const click = wid ? `data-act="openworkout" data-id="${wid}"` : (runPlan ? `data-act="gorun"` : "");
       const cssClass = isRest ? "ws-rest" : (isActivity ? "ws-activity" : "");
       
       return `
         <div class="ws-cell ${isToday ? "ws-today" : ""} ${cssClass}" ${click} title="${dayFull[dow]}" style="--cc:${color}">
           <div class="ws-dow">${dl}</div>
           <div class="ws-letter">${letter}</div>
+          ${runBadge}
           ${isToday ? `<div class="ws-dot"></div>` : ""}
         </div>
       `;
@@ -484,6 +508,8 @@ function vHome() {
       
       ${todayCard}
       
+      ${todayRunCard}
+      
       ${weekStrip}
       
       <div class="protocol-badge">
@@ -520,6 +546,11 @@ function vHome() {
             <div class="qc-icon">⚙️</div>
             <div class="qc-label">Config</div>
           </div>
+          <div class="quick-card qc-wide" data-act="gorun">
+            <div class="qc-icon">🏃</div>
+            <div class="qc-label">Corrida 5 km</div>
+            <div class="qc-tag">${(() => { const d = runDaysUntil(RUN_RACE_DATE); return d > 0 ? d + " dias para a prova" : d === 0 ? "Prova hoje" : "Plano concluído"; })()}</div>
+          </div>
         </div>
       </section>
     </div>
@@ -529,7 +560,7 @@ function vHome() {
 function vMenu() {
   return `
     <div class="modal-overlay" data-act="closemodal">
-      <div class="modal-sheet" onclick="event.stopPropagation()">
+      <div class="modal-sheet">
         <div class="modal-handle"></div>
         <div class="modal-title">Menu</div>
         <div class="menu-list">
@@ -571,6 +602,7 @@ function render() {
     case "progress": html = vProgress(); break;
     case "profile": html = vProfile(); break;
     case "settings": html = vSettings(); break;
+    case "run": html = vRun(); break;
     default: html = vLoading();
   }
   
@@ -579,6 +611,13 @@ function render() {
   if (APP.modal === "menu") {
     app.insertAdjacentHTML("beforeend", vMenu());
   }
+
+  if (APP.view === "run" && RUN.modal === "log") {
+    app.insertAdjacentHTML("beforeend", vRunModal());
+  }
+
+  // Carrega os registros de corrida uma vez (para o ✓ na home)
+  if (APP.view === "home" && !RUN.loaded && !RUN.loading) ensureRunLogs();
   
   // Banner de deload persiste entre renders da home
   if (APP.view === "home" && localStorage.getItem("wmb_deload_active")) {
@@ -609,6 +648,11 @@ document.addEventListener("click", async (e) => {
   if (!el) return;
   
   const act = el.dataset.act;
+  
+  // Overlay de modal só fecha quando o toque é no fundo, não dentro da folha
+  if (el.classList.contains("modal-overlay") && e.target !== el) return;
+  
+  if (await handleRunAct(act, el)) return;
   
   if (act === "setmode") {
     APP.authMode = el.dataset.mode;
